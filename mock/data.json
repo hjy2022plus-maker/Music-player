@@ -1,0 +1,51 @@
+﻿{
+  "albums": [
+    {
+      "id": "a1",
+      "title": "Midnights",
+      "artist": "Taylor Swift",
+      "cover": "https://picsum.photos/id/10/400/400",
+      "year": "2022",
+      "genre": "Pop",
+      "songs": ["s1", "s2", "s3"]
+    },
+    {
+      "id": "a2",
+      "title": "Harry's House",
+      "artist": "Harry Styles",
+      "cover": "https://picsum.photos/id/12/400/400",
+      "year": "2022",
+      "genre": "Pop",
+      "songs": ["s4", "s5", "s6"]
+    },
+    {
+      "id": "a3",
+      "title": "Renaissance",
+      "artist": "Beyonce",
+      "cover": "https://picsum.photos/id/18/400/400",
+      "year": "2022",
+      "genre": "Dance",
+      "songs": ["s7", "s8"]
+    },
+    {
+      "id": "a4",
+      "title": "Special",
+      "artist": "Lizzo",
+      "cover": "https://picsum.photos/id/20/400/400",
+      "year": "2022",
+      "genre": "Pop",
+      "songs": ["s9"]
+    }
+  ],
+  "songs": [
+    {"id": "s1", "albumId": "a1", "title": "Lavender Haze", "artist": "Taylor Swift", "duration": "3:22", "cover": "https://picsum.photos/id/10/400/400"},
+    {"id": "s2", "albumId": "a1", "title": "Maroon", "artist": "Taylor Swift", "duration": "3:38", "cover": "https://picsum.photos/id/10/400/400"},
+    {"id": "s3", "albumId": "a1", "title": "Anti-Hero", "artist": "Taylor Swift", "duration": "3:20", "cover": "https://picsum.photos/id/10/400/400"},
+    {"id": "s4", "albumId": "a2", "title": "Music For a Sushi Restaurant", "artist": "Harry Styles", "duration": "3:14", "cover": "https://picsum.photos/id/12/400/400"},
+    {"id": "s5", "albumId": "a2", "title": "Late Night Talking", "artist": "Harry Styles", "duration": "2:58", "cover": "https://picsum.photos/id/12/400/400"},
+    {"id": "s6", "albumId": "a2", "title": "As It Was", "artist": "Harry Styles", "duration": "2:47", "cover": "https://picsum.photos/id/12/400/400"},
+    {"id": "s7", "albumId": "a3", "title": "I'm That Girl", "artist": "Beyonce", "duration": "3:28", "cover": "https://picsum.photos/id/18/400/400"},
+    {"id": "s8", "albumId": "a3", "title": "Cozy", "artist": "Beyonce", "duration": "3:30", "cover": "https://picsum.photos/id/18/400/400"},
+    {"id": "s9", "albumId": "a4", "title": "About Damn Time", "artist": "Lizzo", "duration": "3:11", "cover": "https://picsum.photos/id/20/400/400"}
+  ]
+}
