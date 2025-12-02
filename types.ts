@@ -6,6 +6,7 @@ export interface Song {
   cover: string;
   duration: string;
   url?: string; // Optional real URL, otherwise mock
+  accentColor?: string;
 }
 
 export interface Album {
@@ -15,6 +16,7 @@ export interface Album {
   cover: string;
   year: string;
   songs: Song[];
+  accentColor?: string;
 }
 
 export interface Playlist {

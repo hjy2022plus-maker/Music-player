@@ -4,6 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apple Music Replica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom thin scrollbar to match Apple Music web vibe */
+      ::-webkit-scrollbar {
+        width: 8px;
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      /* Utility for hiding scrollbar */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      /* Animation Keyframes for Background Blobs */
+      @keyframes float {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+      }
+      @keyframes float2 {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(-30px, 50px) scale(1.1); }
+        66% { transform: translate(20px, -20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+      }
+      .animate-blob {
+        animation: float 10s infinite ease-in-out;
+      }
+      .animate-blob-2 {
+        animation: float2 12s infinite ease-in-out;
+        animation-delay: 1s;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #121212;
+      }
+    </style>
 <script type="importmap">
 {
   "imports": {
@@ -15,9 +64,10 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="root"></div>
-<script type="module" src="/src/main.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

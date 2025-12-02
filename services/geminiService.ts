@@ -4,6 +4,19 @@ import { Song } from "../types";
 // Helper to generate a unique ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Mock vibrant colors for AI generated playlists
+const MOCK_COLORS = [
+  '#FF0055', // Pink
+  '#0033FF', // Blue
+  '#00FF99', // Green
+  '#FFAA00', // Orange
+  '#9900FF', // Purple
+  '#00CCFF', // Cyan
+  '#FF3300'  // Red
+];
+
+const getRandomColor = () => MOCK_COLORS[Math.floor(Math.random() * MOCK_COLORS.length)];
+
 export const generateSmartPlaylist = async (prompt: string): Promise<Song[]> => {
   if (!process.env.API_KEY) {
     console.warn("API_KEY not found in environment variables.");
@@ -51,7 +64,8 @@ export const generateSmartPlaylist = async (prompt: string): Promise<Song[]> => 
       artist: s.artist,
       album: s.album,
       cover: s.cover,
-      duration: s.duration
+      duration: s.duration,
+      accentColor: getRandomColor()
     }));
 
   } catch (error) {

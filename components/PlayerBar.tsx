@@ -17,13 +17,13 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ playerState, onTogglePlay, onNext
   const progressPercent = currentSong ? (progress / 200) * 100 : 0; // Simplified
 
   return (
-    <div className="h-20 bg-[#1c1c1e]/95 backdrop-blur-xl border-t border-[#2c2c2c] flex items-center px-4 justify-between fixed bottom-0 w-full z-50 text-white select-none">
+    <div className="h-20 bg-[#1c1c1e]/80 backdrop-blur-2xl border-t border-white/10 flex items-center px-4 justify-between fixed bottom-0 w-full z-50 text-white select-none shadow-2xl">
       
       {/* Song Info */}
       <div className="flex items-center w-1/3 gap-4">
         {currentSong ? (
           <>
-            <div className="w-12 h-12 rounded-md bg-gray-800 overflow-hidden shadow-md group relative">
+            <div className="w-12 h-12 rounded-md bg-gray-800 overflow-hidden shadow-md group relative flex-shrink-0">
               <img src={currentSong.cover} alt="Cover" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/20 hidden group-hover:flex items-center justify-center">
                  {/* Tiny overlay indicator could go here */}

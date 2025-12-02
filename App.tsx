@@ -3,7 +3,6 @@ import Sidebar from './components/Sidebar';
 import PlayerBar from './components/PlayerBar';
 import MainView from './components/MainView';
 import { Song, Album, View, PlayerState } from './types';
-import { BG_COLOR } from './constants';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.HOME);
@@ -68,14 +67,42 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`flex h-screen ${BG_COLOR} text-white overflow-hidden font-sans selection:bg-rose-500 selection:text-white`}>
+    <div className="relative flex h-screen text-white overflow-hidden font-sans selection:bg-rose-500 selection:text-white">
+      
+      {/* Dynamic Animated Background Layer */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+         {/* Base Dark Layer that changes color */}
+         <div 
+            className="absolute inset-0 transition-colors duration-[1500ms] ease-in-out"
+            style={{ 
+              background: playerState.currentSong?.accentColor 
+                ? `linear-gradient(to bottom, ${playerState.currentSong.accentColor}aa, #121212)` 
+                : '#121212' 
+            }} 
+         />
+         {/* Animated Blobs - Only visible when a song is loaded */}
+         <div className={`absolute inset-0 transition-opacity duration-1000 ${playerState.currentSong ? 'opacity-100' : 'opacity-0'}`}>
+            <div 
+              className="absolute top-[-20%] left-[-20%] w-[80vw] h-[80vw] rounded-full mix-blend-overlay filter blur-[100px] opacity-60 animate-blob" 
+              style={{ backgroundColor: playerState.currentSong?.accentColor || '#333' }} 
+            />
+            <div 
+              className="absolute bottom-[-20%] right-[-20%] w-[80vw] h-[80vw] rounded-full mix-blend-overlay filter blur-[100px] opacity-60 animate-blob-2"
+              style={{ backgroundColor: playerState.currentSong?.accentColor || '#333' }} 
+            />
+         </div>
+          {/* Dark Overlay to ensure text readability */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[30px]" />
+      </div>
+
+      {/* Main App Content */}
       <Sidebar 
         currentView={currentView} 
         onChangeView={handleNavChange} 
         onSearch={(term) => console.log('Searching', term)} 
       />
       
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth no-scrollbar">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth no-scrollbar z-10">
         <div className="max-w-7xl mx-auto px-6 md:px-12 pt-6">
           <MainView 
             currentView={currentView}

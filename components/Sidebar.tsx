@@ -1,7 +1,7 @@
 import React from 'react';
 import { Home, Grid, Radio, Music, Clock, User, Disc, Search, Sparkles } from 'lucide-react';
 import { View } from '../types';
-import { ACCENT_COLOR, SIDEBAR_COLOR } from '../constants';
+import { ACCENT_COLOR } from '../constants';
 
 interface SidebarProps {
   currentView: View;
@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
   };
 
   return (
-    <aside className={`w-64 flex-shrink-0 flex flex-col h-full ${SIDEBAR_COLOR} border-r border-[#2c2c2c] pt-8 px-4`}>
+    <aside className="w-64 flex-shrink-0 flex flex-col h-full bg-black/20 backdrop-blur-xl border-r border-white/5 pt-8 px-4 z-20">
       <div className="mb-6 px-2">
         <form onSubmit={handleSearchSubmit} className="relative">
           <Search className="absolute left-3 top-2.5 text-gray-500" size={16} />
@@ -44,7 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
             placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#262626] text-white pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 placeholder-gray-500"
+            className="w-full bg-white/10 text-white pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 placeholder-gray-400 border border-transparent focus:border-white/10"
           />
         </form>
       </div>
