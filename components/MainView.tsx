@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Album, Song, View } from '../types';
-import { MOCK_ALBUMS, MOCK_HITS } from '../constants';
-import AlbumCard from './AlbumCard';
 import SongRow from './SongRow';
 import { generateSmartPlaylist } from '../services/geminiService';
-import { ChevronRight, Sparkles, Loader } from 'lucide-react';
+import { ChevronRight, Sparkles, Loader, Upload, Music } from 'lucide-react';
 
 interface MainViewProps {
   currentView: View;
   activeAlbum: Album | null;
   currentSong: Song | null;
   isPlaying: boolean;
+  library: Song[];
   onPlaySong: (song: Song) => void;
   onAlbumClick: (album: Album) => void;
   onBack: () => void;
+  onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const MainView: React.FC<MainViewProps> = ({ 
@@ -21,15 +21,18 @@ const MainView: React.FC<MainViewProps> = ({
   activeAlbum, 
   currentSong, 
   isPlaying, 
+  library,
   onPlaySong, 
   onAlbumClick,
-  onBack 
+  onBack,
+  onImport
 }) => {
   // AI DJ State
   const [prompt, setPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPlaylist, setAiPlaylist] = useState<Song[]>([]);
   const [aiError, setAiError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAiSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +44,7 @@ const MainView: React.FC<MainViewProps> = ({
       const songs = await generateSmartPlaylist(prompt);
       setAiPlaylist(songs);
     } catch (err) {
-      setAiError('Something went wrong. Please check your API key or try again.');
+      setAiError('出错了。请检查您的 API 密钥或重试。');
     } finally {
       setAiLoading(false);
     }
@@ -50,7 +53,7 @@ const MainView: React.FC<MainViewProps> = ({
   const SectionHeader = ({ title, showAll = true }: { title: string; showAll?: boolean }) => (
     <div className="flex items-center justify-between mb-4 mt-8 px-2 border-b border-white/5 pb-2">
       <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
-      {showAll && <button className="text-xs font-medium text-rose-500 hover:underline flex items-center">See All <ChevronRight size={14} /></button>}
+      {showAll && library.length > 0 && <button className="text-xs font-medium text-rose-500 hover:underline flex items-center">查看全部 <ChevronRight size={14} /></button>}
     </div>
   );
 
@@ -59,19 +62,19 @@ const MainView: React.FC<MainViewProps> = ({
     return (
       <div className="pb-32 animate-in fade-in duration-300">
         <button onClick={onBack} className="text-sm text-gray-400 hover:text-white mb-6 hover:underline flex items-center gap-1">
-          &larr; Back
+          &larr; 返回
         </button>
         <div className="flex flex-col md:flex-row gap-8 mb-8 items-end">
           <div className="w-64 h-64 shadow-2xl rounded-lg overflow-hidden flex-shrink-0">
              <img src={activeAlbum.cover} alt={activeAlbum.title} className="w-full h-full object-cover" />
           </div>
           <div className="flex flex-col gap-2 pb-2">
-            <h4 className="text-sm font-bold text-rose-500 uppercase tracking-widest">Album</h4>
+            <h4 className="text-sm font-bold text-rose-500 uppercase tracking-widest">专辑</h4>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{activeAlbum.title}</h1>
             <div className="flex items-center gap-2 text-gray-300 font-medium text-lg mt-2">
                <span>{activeAlbum.artist}</span>
                <span className="text-gray-500">•</span>
-               <span className="text-gray-400 text-sm">{activeAlbum.year} • {activeAlbum.songs.length} songs</span>
+               <span className="text-gray-400 text-sm">{activeAlbum.year} • {activeAlbum.songs.length} 首歌曲</span>
             </div>
           </div>
         </div>
@@ -101,7 +104,7 @@ const MainView: React.FC<MainViewProps> = ({
               <Sparkles className="text-white" size={32} />
            </div>
            <h1 className="text-3xl font-bold text-white mb-2">Gemini AI DJ</h1>
-           <p className="text-gray-400">Describe your vibe, and let AI curate the perfect mix.</p>
+           <p className="text-gray-400">描述你的心情，让 AI 为你定制完美歌单。</p>
          </div>
 
          <form onSubmit={handleAiSubmit} className="relative mb-12 group">
@@ -110,7 +113,7 @@ const MainView: React.FC<MainViewProps> = ({
               type="text" 
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. 'Upbeat 80s pop for a road trip' or 'Sad songs for a rainy Sunday'..."
+              placeholder="例如：'适合公路旅行的欢快 80 年代流行乐' 或 '适合下雨周日的悲伤歌曲'..."
               className="relative w-full bg-[#2c2c2c] text-white p-4 pl-6 pr-14 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-500 shadow-xl"
             />
             <button 
@@ -118,7 +121,7 @@ const MainView: React.FC<MainViewProps> = ({
               disabled={aiLoading}
               className="absolute right-2 top-2 bottom-2 bg-rose-600 text-white px-4 rounded-md font-medium hover:bg-rose-500 disabled:opacity-50 transition-colors"
             >
-              {aiLoading ? <Loader className="animate-spin" size={20} /> : 'Go'}
+              {aiLoading ? <Loader className="animate-spin" size={20} /> : '生成'}
             </button>
          </form>
 
@@ -131,7 +134,7 @@ const MainView: React.FC<MainViewProps> = ({
          {aiPlaylist.length > 0 && (
            <div className="bg-[#1c1c1e] rounded-xl overflow-hidden border border-white/5">
               <div className="p-4 border-b border-white/5 bg-white/5">
-                 <h3 className="font-semibold text-white">Generated Playlist</h3>
+                 <h3 className="font-semibold text-white">生成的歌单</h3>
               </div>
               <div className="p-2">
                 {aiPlaylist.map((song, idx) => (
@@ -158,44 +161,59 @@ const MainView: React.FC<MainViewProps> = ({
       {/* Featured Banner */}
       <div className="w-full h-[300px] md:h-[400px] rounded-xl overflow-hidden relative mb-8 group cursor-pointer shadow-2xl">
         <img 
-          src="https://picsum.photos/id/40/1200/600" 
+          src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2000&auto=format&fit=crop" 
           alt="Featured" 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter brightness-75" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
-           <span className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-2">New Release</span>
-           <h2 className="text-4xl md:text-5xl font-bold text-white mb-2">Spatial Audio Experience</h2>
-           <p className="text-gray-200 max-w-lg">Immerse yourself in sound with our curated collection of spatial audio tracks.</p>
+           <span className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-2">本地音乐库</span>
+           <h2 className="text-4xl md:text-5xl font-bold text-white mb-2">高品质音频</h2>
+           <p className="text-gray-200 max-w-lg">导入您的本地音频文件，享受无损播放体验。</p>
+           
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             className="mt-6 bg-rose-600 hover:bg-rose-500 text-white px-6 py-3 rounded-full font-medium transition-colors w-fit flex items-center gap-2 shadow-lg"
+           >
+             <Upload size={18} />
+             导入音频文件
+           </button>
+           <input 
+             type="file" 
+             ref={fileInputRef} 
+             onChange={onImport} 
+             className="hidden" 
+             multiple 
+             accept="audio/*" 
+           />
         </div>
       </div>
 
-      <SectionHeader title="Top Picks For You" />
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {MOCK_ALBUMS.map(album => (
-          <AlbumCard key={album.id} album={album} onClick={onAlbumClick} />
-        ))}
-      </div>
-
-      <SectionHeader title="New Music" />
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {MOCK_ALBUMS.slice().reverse().map(album => (
-          <AlbumCard key={`new-${album.id}`} album={album} onClick={onAlbumClick} />
-        ))}
-      </div>
-
-      <SectionHeader title="Hit Songs" showAll={false} />
-      <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5">
-        {MOCK_HITS.slice(0, 5).map((song, idx) => (
-           <SongRow 
-             key={song.id} 
-             song={song} 
-             index={idx} 
-             isActive={currentSong?.id === song.id}
-             isPlaying={isPlaying}
-             onPlay={onPlaySong} 
-           />
-        ))}
-      </div>
+      <SectionHeader title="我的歌曲" showAll={true} />
+      
+      {library.length > 0 ? (
+        <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
+          {library.map((song, idx) => (
+             <SongRow 
+               key={song.id} 
+               song={song} 
+               index={idx} 
+               isActive={currentSong?.id === song.id}
+               isPlaying={isPlaying}
+               onPlay={onPlaySong} 
+             />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-[#1c1c1e] rounded-xl p-12 border border-white/5 mb-8 flex flex-col items-center justify-center text-center text-gray-500 gap-4 border-dashed">
+           <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
+             <Music size={32} className="opacity-50" />
+           </div>
+           <div>
+             <h3 className="text-white font-medium text-lg mb-1">暂无歌曲</h3>
+             <p className="text-sm">点击上方的导入按钮添加本地音乐。</p>
+           </div>
+        </div>
+      )}
 
     </div>
   );

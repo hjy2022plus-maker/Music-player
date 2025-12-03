@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Grid, Radio, Music, Clock, User, Disc, Search, Sparkles } from 'lucide-react';
+import { Home, Grid, Music, Clock, User, Disc, Search } from 'lucide-react';
 import { View } from '../types';
 import { ACCENT_COLOR } from '../constants';
 
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
           <Search className="absolute left-3 top-2.5 text-gray-500" size={16} />
           <input
             type="text"
-            placeholder="Search"
+            placeholder="搜索"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white/10 text-white pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 placeholder-gray-400 border border-transparent focus:border-white/10"
@@ -50,35 +50,27 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
       </div>
 
       <div className="space-y-1 mb-8">
-        <NavItem view={View.HOME} icon={Home} label="Listen Now" />
-        <NavItem view={View.BROWSE} icon={Grid} label="Browse" />
-        <NavItem view={View.RADIO} icon={Radio} label="Radio" />
+        <NavItem view={View.HOME} icon={Home} label="首页" />
+        <NavItem view={View.BROWSE} icon={Grid} label="浏览" />
       </div>
 
       <div className="px-4 mb-2">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Library</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">资料库</h3>
       </div>
       <div className="space-y-1 mb-8">
         <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <Clock size={18} /> Recently Added
+           <Clock size={18} /> 最近添加
         </button>
         <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <User size={18} /> Artists
+           <User size={18} /> 艺人
         </button>
         <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <Disc size={18} /> Albums
+           <Disc size={18} /> 专辑
         </button>
         <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <Music size={18} /> Songs
+           <Music size={18} /> 歌曲
         </button>
       </div>
-
-      <div className="px-4 mb-2">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Playlists</h3>
-      </div>
-       <div className="space-y-1">
-        <NavItem view={View.AI_DJ} icon={Sparkles} label="Ask Gemini DJ" />
-       </div>
 
     </aside>
   );

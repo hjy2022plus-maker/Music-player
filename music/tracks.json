@@ -1,29 +1,29 @@
 [
   {
-    "id": 1,
+    "id": "local_qingtian",
     "title": "晴天",
-    "artist": "Artist 1",
-    "album": "Album 1",
+    "artist": "周杰伦",
+    "album": "叶惠美",
     "cover": "/covers/109951163200234839.jpg",
-    "src": "/music/M500000bYDlc2XxKLs.mp3",
-    "duration": 258
+    "src": "/music/晴天.mp3",
+    "duration": 269
   },
   {
-    "id": 2,
-    "title": "Song 2",
-    "artist": "Artist 2",
-    "album": "Album 2",
-    "cover": "/covers/default.jpg",
-    "src": "/music/M500002qU5aY3Qu24y.mp3",
-    "duration": 230
+    "id": "local_daoxiang",
+    "title": "稻香",
+    "artist": "周杰伦",
+    "album": "魔杰座",
+    "cover": "/covers/109951163200234839.jpg",
+    "src": "/music/稻香.mp3",
+    "duration": 223
   },
   {
-    "id": 3,
-    "title": "Song 3",
-    "artist": "Artist 3",
-    "album": "Album 3",
-    "cover": "/covers/default.jpg",
-    "src": "/music/M500003aAYrm3GE0Ac.mp3",
-    "duration": 215
+    "id": "local_qinghuaci",
+    "title": "青花瓷",
+    "artist": "周杰伦",
+    "album": "我很忙",
+    "cover": "/covers/109951163200234839.jpg",
+    "src": "/music/青花瓷.mp3",
+    "duration": 239
   }
 ]

@@ -41,5 +41,6 @@ export interface PlayerState {
   isPlaying: boolean;
   volume: number;
   progress: number;
+  duration?: number; // Added duration state
   queue: Song[];
 }
