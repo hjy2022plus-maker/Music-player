@@ -1,9 +1,8 @@
-import React, { useState, useRef, useMemo } from 'react';
+﻿import React, { useRef, useMemo } from 'react';
 import { Album, Song, View } from '../types';
 import SongRow from './SongRow';
 import AlbumCard from './AlbumCard';
-import { generateSmartPlaylist } from '../services/geminiService';
-import { ChevronRight, Sparkles, Loader, Upload, Music, Play, Clock, Disc, User } from 'lucide-react';
+import { ChevronRight, Upload, Music, Play, Clock, Disc, User } from 'lucide-react';
 
 interface MainViewProps {
   currentView: View;
@@ -28,34 +27,13 @@ const MainView: React.FC<MainViewProps> = ({
   onBack,
   onImport
 }) => {
-  // AI DJ State
-  const [prompt, setPrompt] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiPlaylist, setAiPlaylist] = useState<Song[]>([]);
-  const [aiError, setAiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAiSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-    
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const songs = await generateSmartPlaylist(prompt);
-      setAiPlaylist(songs);
-    } catch (err) {
-      setAiError('出错了。请检查您的 API 密钥或重试。');
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   // Group songs by Album for ALBUMS view
   const derivedAlbums = useMemo(() => {
     const albumsMap: Record<string, Album> = {};
     library.forEach(song => {
-      const key = song.album || '未知专辑';
+      const key = song.album || 'Unknown Album';
       if (!albumsMap[key]) {
         albumsMap[key] = {
           id: key,
@@ -76,7 +54,7 @@ const MainView: React.FC<MainViewProps> = ({
   const derivedArtists = useMemo(() => {
     const artistsMap: Record<string, Album> = {};
     library.forEach(song => {
-      const key = song.artist || '未知艺人';
+      const key = song.artist || 'Unknown Artist';
       if (!artistsMap[key]) {
         artistsMap[key] = {
           id: key,
@@ -95,7 +73,7 @@ const MainView: React.FC<MainViewProps> = ({
   const SectionHeader = ({ title, showAll = true }: { title: string; showAll?: boolean }) => (
     <div className="flex items-center justify-between mb-4 mt-8 px-2 border-b border-white/5 pb-2">
       <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
-      {showAll && library.length > 0 && <button className="text-xs font-medium text-rose-500 hover:underline flex items-center">查看全部 <ChevronRight size={14} /></button>}
+      {showAll && library.length > 0 && <button className="text-xs font-medium text-rose-500 hover:underline flex items-center">View all <ChevronRight size={14} /></button>}
     </div>
   );
 
@@ -105,7 +83,7 @@ const MainView: React.FC<MainViewProps> = ({
     return (
       <div className="pb-32 animate-in fade-in duration-300">
         <button onClick={onBack} className="text-sm text-gray-400 hover:text-white mb-6 hover:underline flex items-center gap-1">
-          &larr; 返回
+          &larr; Back
         </button>
         <div className="flex flex-col md:flex-row gap-8 mb-8 items-end">
           <div className={`w-64 h-64 shadow-2xl overflow-hidden flex-shrink-0 ${isArtistView ? 'rounded-full' : 'rounded-lg'}`}>
@@ -113,13 +91,17 @@ const MainView: React.FC<MainViewProps> = ({
           </div>
           <div className="flex flex-col gap-2 pb-2">
             <h4 className="text-sm font-bold text-rose-500 uppercase tracking-widest">
-               {isArtistView ? '艺人' : '专辑'}
+               {isArtistView ? 'Artist' : 'Album'}
             </h4>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{activeAlbum.title}</h1>
             <div className="flex items-center gap-2 text-gray-300 font-medium text-lg mt-2">
-               {!isArtistView && <span>{activeAlbum.artist}</span>}
-               {!isArtistView && <span className="text-gray-500">•</span>}
-               <span className="text-gray-400 text-sm">{activeAlbum.songs.length} 首歌曲</span>
+               {!isArtistView && (
+                 <>
+                   <span>{activeAlbum.artist}</span>
+                   <span className="text-gray-500"> • </span>
+                 </>
+               )}
+               <span className="text-gray-400 text-sm">{activeAlbum.songs.length} {activeAlbum.songs.length === 1 ? 'track' : 'tracks'}</span>
             </div>
           </div>
         </div>
@@ -161,7 +143,7 @@ const MainView: React.FC<MainViewProps> = ({
             ) : (
                 <div className="text-gray-500 text-center py-20 flex flex-col items-center gap-4">
                    <Clock size={48} className="opacity-20" />
-                   <p>暂无最近添加的音乐。</p>
+                   <p>暂无最近添加的音乐</p>
                 </div>
             )}
         </div>
@@ -182,7 +164,7 @@ const MainView: React.FC<MainViewProps> = ({
               ) : (
                 <div className="text-gray-500 text-center py-20 flex flex-col items-center gap-4">
                    <Disc size={48} className="opacity-20" />
-                   <p>暂无专辑信息。</p>
+                   <p>暂无专辑信息</p>
                 </div>
               )}
           </div>
@@ -218,70 +200,11 @@ const MainView: React.FC<MainViewProps> = ({
             ) : (
               <div className="text-gray-500 text-center py-20 flex flex-col items-center gap-4">
                    <User size={48} className="opacity-20" />
-                   <p>暂无艺人信息。</p>
+                   <p>暂无艺人信息</p>
               </div>
             )}
         </div>
     )
-  }
-
-  // VIEW: AI DJ
-  if (currentView === View.AI_DJ) {
-    return (
-      <div className="max-w-3xl mx-auto pt-10 pb-32 animate-in slide-in-from-bottom-4 duration-500">
-         <div className="text-center mb-10">
-           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-rose-500 to-purple-600 mb-4 shadow-lg shadow-rose-500/20">
-              <Sparkles className="text-white" size={32} />
-           </div>
-           <h1 className="text-3xl font-bold text-white mb-2">Gemini AI DJ</h1>
-           <p className="text-gray-400">描述你的心情，让 AI 为你定制完美歌单。</p>
-         </div>
-
-         <form onSubmit={handleAiSubmit} className="relative mb-12 group">
-            <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition-opacity"></div>
-            <input 
-              type="text" 
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="例如：'适合公路旅行的欢快 80 年代流行乐' 或 '适合下雨周日的悲伤歌曲'..."
-              className="relative w-full bg-[#2c2c2c] text-white p-4 pl-6 pr-14 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-gray-500 shadow-xl"
-            />
-            <button 
-              type="submit" 
-              disabled={aiLoading}
-              className="absolute right-2 top-2 bottom-2 bg-rose-600 text-white px-4 rounded-md font-medium hover:bg-rose-500 disabled:opacity-50 transition-colors"
-            >
-              {aiLoading ? <Loader className="animate-spin" size={20} /> : '生成'}
-            </button>
-         </form>
-
-         {aiError && (
-           <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-center mb-8">
-             {aiError}
-           </div>
-         )}
-
-         {aiPlaylist.length > 0 && (
-           <div className="bg-[#1c1c1e] rounded-xl overflow-hidden border border-white/5">
-              <div className="p-4 border-b border-white/5 bg-white/5">
-                 <h3 className="font-semibold text-white">生成的歌单</h3>
-              </div>
-              <div className="p-2">
-                {aiPlaylist.map((song, idx) => (
-                  <SongRow 
-                    key={song.id} 
-                    song={song} 
-                    index={idx} 
-                    isActive={currentSong?.id === song.id}
-                    isPlaying={isPlaying}
-                    onPlay={onPlaySong} 
-                  />
-                ))}
-              </div>
-           </div>
-         )}
-      </div>
-    );
   }
 
   // VIEW: HOME (Default)
@@ -297,7 +220,7 @@ const MainView: React.FC<MainViewProps> = ({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
            <span className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-2">本地音乐库</span>
-           <h2 className="text-4xl md:text-5xl font-bold text-white mb-2">高品质音频</h2>
+           <h2 className="text-4xl md:text-5xl font-bold text-white mb-2">高品质音乐</h2>
            <p className="text-gray-200 max-w-lg">导入您的本地音频文件，享受无损播放体验。</p>
            
            <button 
@@ -318,7 +241,7 @@ const MainView: React.FC<MainViewProps> = ({
         </div>
       </div>
 
-      <SectionHeader title="我的歌曲" showAll={true} />
+      <SectionHeader title="我的曲库" showAll={true} />
       
       {library.length > 0 ? (
         <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
@@ -339,7 +262,7 @@ const MainView: React.FC<MainViewProps> = ({
              <Music size={32} className="opacity-50" />
            </div>
            <div>
-             <h3 className="text-white font-medium text-lg mb-1">暂无歌曲</h3>
+             <h3 className="text-white font-medium text-lg mb-1">暂无曲目</h3>
              <p className="text-sm">点击上方的导入按钮添加本地音乐。</p>
            </div>
         </div>

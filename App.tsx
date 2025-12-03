@@ -5,8 +5,11 @@ import MainView from './components/MainView';
 import FullScreenPlayer from './components/FullScreenPlayer';
 import QueueList from './components/QueueList';
 import { Song, Album, View, PlayerState } from './types';
+import { MOCK_API_BASE } from './constants';
 
 const App: React.FC = () => {
+  const LOCAL_LIBRARY_KEY = 'local_uploaded_library';
+  const LOCAL_QUEUE_KEY = 'local_uploaded_queue';
   const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [activeAlbum, setActiveAlbum] = useState<Album | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -14,6 +17,7 @@ const App: React.FC = () => {
   const [library, setLibrary] = useState<Song[]>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasInitialized = useRef(false);
 
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentSong: null,
@@ -46,6 +50,78 @@ const App: React.FC = () => {
       audioRef.current.volume = playerState.volume / 100;
     }
   }, [playerState.volume]);
+
+  useEffect(() => {
+    const hydrateSong = (song: Song): Song => ({
+      accentColor: '#d9775e',
+      ...song
+    });
+
+    // Hydrate any previously uploaded songs that have stable URLs
+    try {
+      const raw = localStorage.getItem(LOCAL_LIBRARY_KEY);
+      console.log('[App] Restoring library from localStorage:', raw);
+      if (raw) {
+        const parsed: Song[] = JSON.parse(raw);
+        console.log('[App] Parsed songs:', parsed.length, 'songs');
+        setLibrary(parsed.map(hydrateSong));
+      } else {
+        console.log('[App] No library data found in localStorage');
+      }
+    } catch (error) {
+      console.warn('Failed to restore local uploads', error);
+    }
+
+    // Hydrate queue so playback list survives refresh
+    try {
+      const rawQueue = localStorage.getItem(LOCAL_QUEUE_KEY);
+      if (rawQueue) {
+        const parsedQueue: Song[] = JSON.parse(rawQueue);
+        setPlayerState(prev => ({ ...prev, queue: parsedQueue.map(hydrateSong) }));
+      }
+    } catch (error) {
+      console.warn('Failed to restore queue', error);
+    }
+
+    // Mark as initialized after a short delay to allow state to settle
+    setTimeout(() => {
+      hasInitialized.current = true;
+      console.log('[App] Initialization complete');
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    // Persist all songs with stable URLs (http/https)
+    // Filter out blob URLs as they cannot survive page refresh
+    const persistable = library.filter(s => s.url && s.url.startsWith('http'));
+    console.log('[App] Persisting library:', persistable.length, 'songs with stable URLs out of', library.length, 'total');
+
+    // Don't persist if we haven't initialized yet (prevents StrictMode from clearing on remount)
+    if (!hasInitialized.current) {
+      console.log('[App] Skipping persist - not initialized yet');
+      return;
+    }
+
+    // Only persist if we have songs to save
+    if (persistable.length > 0) {
+      try {
+        localStorage.setItem(LOCAL_LIBRARY_KEY, JSON.stringify(persistable));
+        console.log('[App] Successfully saved to localStorage');
+      } catch (error) {
+        console.warn('Failed to persist local uploads', error);
+      }
+    }
+  }, [library]);
+
+  useEffect(() => {
+    // Persist queue with stable URLs so queue view survives refresh
+    const persistableQueue = playerState.queue.filter(s => s.url.startsWith('http'));
+    try {
+      localStorage.setItem(LOCAL_QUEUE_KEY, JSON.stringify(persistableQueue));
+    } catch (error) {
+      console.warn('Failed to persist queue', error);
+    }
+  }, [playerState.queue]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -136,66 +212,92 @@ const App: React.FC = () => {
     handlePlaySong(library[prevIndex]);
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files) as File[];
-      
-      files.forEach(file => {
-        const url = URL.createObjectURL(file);
-        // Default to filename if tag reading fails
-        const fallbackTitle = file.name.replace(/\.[^/.]+$/, "");
-        const tempId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        const newSong: Song = {
-          id: tempId,
-          title: fallbackTitle,
-          artist: 'Unknown Artist',
-          album: 'Local Import',
-          cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=800&auto=format&fit=crop',
-          duration: '--:--',
-          url: url,
-          accentColor: ['#d9775e', '#6b2c91', '#3d5a80', '#4a3b69'][Math.floor(Math.random() * 4)]
-        };
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (!files.length) return;
 
-        setLibrary(prev => [...prev, newSong]);
+    const accentPalette = ['#d9775e', '#6b2c91', '#3d5a80', '#4a3b69'];
 
-        // Read ID3 tags
-        if ((window as any).jsmediatags) {
-          (window as any).jsmediatags.read(file, {
-            onSuccess: (tag: any) => {
-              const { title, artist, album, picture } = tag.tags;
-              
-              let coverUrl = newSong.cover;
-              if (picture) {
-                const { data, format } = picture;
-                let base64String = "";
-                for (let i = 0; i < data.length; i++) {
-                  base64String += String.fromCharCode(data[i]);
-                }
-                coverUrl = `data:${format};base64,${window.btoa(base64String)}`;
-              }
+    for (const file of files) {
+      const objectUrl = URL.createObjectURL(file);
+      const fallbackTitle = file.name.replace(/\.[^/.]+$/, "");
+      const tempId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const accentColor = accentPalette[Math.floor(Math.random() * accentPalette.length)];
 
-              // Update this specific song in the library
-              setLibrary(prev => prev.map(s => {
-                if (s.id === tempId) {
-                  return {
-                    ...s,
-                    title: title || fallbackTitle,
-                    artist: artist || 'Unknown Artist',
-                    album: album || 'Local Import',
-                    cover: coverUrl
-                  };
-                }
-                return s;
-              }));
-            },
-            onError: (error: any) => {
-              console.warn("Could not read tags for", file.name, error);
-            }
-          });
+      const newSong: Song = {
+        id: tempId,
+        title: fallbackTitle,
+        artist: 'Unknown Artist',
+        album: 'Local Import',
+        cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=800&auto=format&fit=crop',
+        duration: '--:--',
+        url: objectUrl,
+        accentColor
+      };
+
+      setLibrary(prev => [...prev, newSong]);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        console.log('[Upload] Uploading file to mock API:', file.name);
+        const uploadRes = await fetch(`${MOCK_API_BASE}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error(`Upload failed with status ${uploadRes.status}`);
         }
-      });
+
+        const payload = await uploadRes.json();
+        console.log('[Upload] Upload successful, received URL:', payload?.url);
+        if (payload?.url) {
+          setLibrary(prev => prev.map(s => s.id === tempId ? { ...s, url: payload.url } : s));
+        }
+      } catch (error) {
+        console.warn('[Upload] Upload to mock API failed; keeping local blob URL', error);
+      }
+
+      // Read ID3 tags
+      if ((window as any).jsmediatags) {
+        (window as any).jsmediatags.read(file, {
+          onSuccess: (tag: any) => {
+            const { title, artist, album, picture } = tag.tags;
+            
+            let coverUrl = newSong.cover;
+            if (picture) {
+              const { data, format } = picture;
+              let base64String = "";
+              for (let i = 0; i < data.length; i++) {
+                base64String += String.fromCharCode(data[i]);
+              }
+              coverUrl = `data:${format};base64,${window.btoa(base64String)}`;
+            }
+
+            // Update this specific song in the library
+            setLibrary(prev => prev.map(s => {
+              if (s.id === tempId) {
+                return {
+                  ...s,
+                  title: title || fallbackTitle,
+                  artist: artist || 'Unknown Artist',
+                  album: album || 'Local Import',
+                  cover: coverUrl
+                };
+              }
+              return s;
+            }));
+          },
+          onError: (error: any) => {
+            console.warn("Could not read tags for", file.name, error);
+          }
+        });
+      }
     }
+
+    e.target.value = '';
   };
 
   return (

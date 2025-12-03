@@ -1,31 +1,30 @@
-ï»¿# Repository Guidelines
+# Repository Guidelines
 
 ## Project Structure & Module Organization
-- Root entry `index.tsx` mounts `App.tsx`; UI lives in `components/` (e.g., `Sidebar.tsx`, `MainView.tsx`, `PlayerBar.tsx`, `AlbumCard.tsx`, `SongRow.tsx`).
-- Shared shapes are in `types.ts`; theme tokens and mock catalog sit in `constants.ts`.
-- AI playlist generation stays in `services/geminiService.ts`; keep network logic isolated here.
-- Secrets belong in `.env.local` (ignored by Git) and feed Vite; `index.html` hosts the root container and metadata.
+- Vite React + TypeScript app; entry `src/main.tsx` mounts `App.tsx` at `#root`.
+- UI is split into `components/` (Sidebar, PlayerBar, MainView, QueueList, FullScreenPlayer, AlbumCard, SongRow) with shared types in `types.ts`.
+- Config/constants live in `constants.ts`; mock API is in `mock/` and used by the dev script. Assets sit in `covers/` and `music/`; built output goes to `dist/` and should not be edited manually.
 
 ## Build, Test, and Development Commands
-- `npm install` â€” install dependencies (Node 18+ recommended).
-- `npm run dev` â€” start the Vite dev server at http://localhost:5173/ with HMR.
-- `npm run build` â€” create the production bundle in `dist/`.
-- `npm run preview` â€” serve the built bundle locally for sanity checks.
+- `npm install` ¡ª install dependencies (run once or after lockfile changes).
+- `npm run dev -- --host --port 5173` ¡ª start Vite dev server (match `DEV_PORT` if overridden).
+- `npm run mock` ¡ª start the mock API (default `MOCK_PORT=4000`); keep it running for data to load.
+- `start-dev.bat` ¡ª Windows helper that launches both mock + dev servers; respects `MOCK_PORT`/`DEV_PORT` env vars.
+- `npm run build` ¡ª production build to `dist/`; `npm run preview` serves the built assets for a final check.
 
 ## Coding Style & Naming Conventions
-- TypeScript + React function components; prefer hooks and keep view-specific state local.
-- Formatting: single quotes, semicolons, 2-space indentation, file-level PascalCase for components, camelCase for functions/vars, shared constants in SCREAMING_SNAKE_CASE.
-- Styling lives in utility className strings; avoid inline styles unless necessary.
+- Stick to functional React with hooks and typed props; avoid implicit `any` and prefer the interfaces/enums in `types.ts`.
+- 2-space indentation, semicolons, and PascalCase component files; functions/variables camelCase; enums PascalCase.
+- Use Tailwind utility classes in `className`; keep additional CSS in `src/index.css`. Keep asset paths relative to `music/` and `covers/` and update mocks when they change.
 
 ## Testing Guidelines
-- No runner is configured yet; when adding tests, use Vitest + React Testing Library and name specs `*.test.tsx` mirroring `components/` (e.g., `components/__tests__/Sidebar.test.tsx`).
-- Cover UI states (empty/loading/playing) and service error handling; document any new npm scripts (e.g., `npm run test`).
+- No automated suite yet: run `npm run dev` + `npm run mock`, then smoke-test playback (play/pause, seek, volume), queue add/remove, full-screen toggle, and navigation tabs.
+- When adding tests, favor React Testing Library with Vitest; co-locate specs as `*.test.tsx` beside the component.
 
 ## Commit & Pull Request Guidelines
-- Commits: concise, imperative subjects (e.g., `Add album details view`); group related changes and avoid mixing refactors with features.
-- PRs: include a summary, user-facing screenshots for UI changes, reproduction steps, and linked issues/trackers.
-- Note any new environment variables (service expects `process.env.API_KEY`; `.env.local` currently uses `GEMINI_API_KEY`â€”set both or align naming) and update docs when behavior changes.
+- Commits: short, imperative subjects (e.g., `Add queue keyboard shortcuts`); group related changes; keep lockfile updates with the dependency change.
+- PRs: include a concise summary, linked issue if available, before/after UI screenshots for visual tweaks, and call out new env vars or manual test steps.
 
-## Security & Configuration Tips
-- Never commit secrets; scope keys to least privilege and validate API keys before enabling AI features.
-- Keep remote assets over HTTPS and handle player/network failures gracefully; log only non-sensitive context.
+## Security & Configuration
+- Secrets and service URLs belong in `.env.local`; do not commit credentials or unlicensed media.
+- Exclude `dist/` and `node_modules/` from PRs; reinstall deps after Node upgrades (Vite/TypeScript expect modern Node 18+).
