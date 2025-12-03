@@ -51,25 +51,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
 
       <div className="space-y-1 mb-8">
         <NavItem view={View.HOME} icon={Home} label="首页" />
-        <NavItem view={View.BROWSE} icon={Grid} label="浏览" />
       </div>
 
       <div className="px-4 mb-2">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">资料库</h3>
       </div>
       <div className="space-y-1 mb-8">
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <Clock size={18} /> 最近添加
-        </button>
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <User size={18} /> 艺人
-        </button>
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <Disc size={18} /> 专辑
-        </button>
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium hover:bg-white/5 rounded-md">
-           <Music size={18} /> 歌曲
-        </button>
+        <NavItem view={View.RECENTLY_ADDED} icon={Clock} label="最近添加" />
+        <NavItem view={View.ARTISTS} icon={User} label="艺人" />
+        <NavItem view={View.ALBUMS} icon={Disc} label="专辑" />
       </div>
 
     </aside>

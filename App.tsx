@@ -3,12 +3,14 @@ import Sidebar from './components/Sidebar';
 import PlayerBar from './components/PlayerBar';
 import MainView from './components/MainView';
 import FullScreenPlayer from './components/FullScreenPlayer';
+import QueueList from './components/QueueList';
 import { Song, Album, View, PlayerState } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [activeAlbum, setActiveAlbum] = useState<Album | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [library, setLibrary] = useState<Song[]>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -136,7 +138,7 @@ const App: React.FC = () => {
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
+      const files = Array.from(e.target.files) as File[];
       
       files.forEach(file => {
         const url = URL.createObjectURL(file);
@@ -234,6 +236,15 @@ const App: React.FC = () => {
           <div className={`absolute inset-0 bg-black/40 backdrop-blur-[30px] transition-opacity duration-500 ${isFullScreen ? 'bg-black/20 backdrop-blur-[60px]' : ''}`} />
       </div>
 
+      <QueueList 
+        isOpen={isQueueOpen} 
+        library={library} 
+        currentSong={playerState.currentSong}
+        isPlaying={playerState.isPlaying}
+        onPlay={handlePlaySong}
+        onClose={() => setIsQueueOpen(false)}
+      />
+
       {isFullScreen ? (
         <FullScreenPlayer 
           playerState={playerState}
@@ -242,7 +253,7 @@ const App: React.FC = () => {
           onPrev={handlePrev}
           onVolumeChange={(vol) => setPlayerState(p => ({ ...p, volume: vol }))}
           onSeek={handleSeek}
-          onToggleFullScreen={() => setIsFullScreen(false)}
+          onToggleFullScreen={() => setIsFullScreen(true)}
         />
       ) : (
         <>
@@ -276,6 +287,8 @@ const App: React.FC = () => {
             onVolumeChange={(vol) => setPlayerState(p => ({ ...p, volume: vol }))}
             onSeek={handleSeek}
             onToggleFullScreen={() => setIsFullScreen(true)}
+            onToggleQueue={() => setIsQueueOpen(!isQueueOpen)}
+            isQueueOpen={isQueueOpen}
           />
         </>
       )}

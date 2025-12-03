@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Album, Song, View } from '../types';
 import SongRow from './SongRow';
+import AlbumCard from './AlbumCard';
 import { generateSmartPlaylist } from '../services/geminiService';
-import { ChevronRight, Sparkles, Loader, Upload, Music } from 'lucide-react';
+import { ChevronRight, Sparkles, Loader, Upload, Music, Play, Clock, Disc, User } from 'lucide-react';
 
 interface MainViewProps {
   currentView: View;
@@ -50,6 +51,47 @@ const MainView: React.FC<MainViewProps> = ({
     }
   };
 
+  // Group songs by Album for ALBUMS view
+  const derivedAlbums = useMemo(() => {
+    const albumsMap: Record<string, Album> = {};
+    library.forEach(song => {
+      const key = song.album || '未知专辑';
+      if (!albumsMap[key]) {
+        albumsMap[key] = {
+          id: key,
+          title: key,
+          artist: song.artist,
+          cover: song.cover,
+          year: '',
+          songs: []
+        };
+      }
+      albumsMap[key].songs.push(song);
+    });
+    return Object.values(albumsMap);
+  }, [library]);
+
+  // Group songs by Artist for ARTISTS view
+  // We treat an "Artist" entry like an Album object for re-use of the details view
+  const derivedArtists = useMemo(() => {
+    const artistsMap: Record<string, Album> = {};
+    library.forEach(song => {
+      const key = song.artist || '未知艺人';
+      if (!artistsMap[key]) {
+        artistsMap[key] = {
+          id: key,
+          title: key,
+          artist: 'Artist Collection', // Marker to distinguish
+          cover: song.cover,
+          year: '',
+          songs: []
+        };
+      }
+      artistsMap[key].songs.push(song);
+    });
+    return Object.values(artistsMap);
+  }, [library]);
+
   const SectionHeader = ({ title, showAll = true }: { title: string; showAll?: boolean }) => (
     <div className="flex items-center justify-between mb-4 mt-8 px-2 border-b border-white/5 pb-2">
       <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
@@ -57,24 +99,27 @@ const MainView: React.FC<MainViewProps> = ({
     </div>
   );
 
-  // VIEW: ALBUM DETAILS
+  // VIEW: ALBUM DETAILS (Re-used for Artists as well)
   if (currentView === View.ALBUM_DETAILS && activeAlbum) {
+    const isArtistView = activeAlbum.artist === 'Artist Collection';
     return (
       <div className="pb-32 animate-in fade-in duration-300">
         <button onClick={onBack} className="text-sm text-gray-400 hover:text-white mb-6 hover:underline flex items-center gap-1">
           &larr; 返回
         </button>
         <div className="flex flex-col md:flex-row gap-8 mb-8 items-end">
-          <div className="w-64 h-64 shadow-2xl rounded-lg overflow-hidden flex-shrink-0">
+          <div className={`w-64 h-64 shadow-2xl overflow-hidden flex-shrink-0 ${isArtistView ? 'rounded-full' : 'rounded-lg'}`}>
              <img src={activeAlbum.cover} alt={activeAlbum.title} className="w-full h-full object-cover" />
           </div>
           <div className="flex flex-col gap-2 pb-2">
-            <h4 className="text-sm font-bold text-rose-500 uppercase tracking-widest">专辑</h4>
+            <h4 className="text-sm font-bold text-rose-500 uppercase tracking-widest">
+               {isArtistView ? '艺人' : '专辑'}
+            </h4>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{activeAlbum.title}</h1>
             <div className="flex items-center gap-2 text-gray-300 font-medium text-lg mt-2">
-               <span>{activeAlbum.artist}</span>
-               <span className="text-gray-500">•</span>
-               <span className="text-gray-400 text-sm">{activeAlbum.year} • {activeAlbum.songs.length} 首歌曲</span>
+               {!isArtistView && <span>{activeAlbum.artist}</span>}
+               {!isArtistView && <span className="text-gray-500">•</span>}
+               <span className="text-gray-400 text-sm">{activeAlbum.songs.length} 首歌曲</span>
             </div>
           </div>
         </div>
@@ -93,6 +138,91 @@ const MainView: React.FC<MainViewProps> = ({
         </div>
       </div>
     );
+  }
+
+  // VIEW: RECENTLY ADDED
+  if (currentView === View.RECENTLY_ADDED) {
+     return (
+        <div className="pb-32 animate-in fade-in duration-300">
+            <SectionHeader title="最近添加" showAll={false} />
+            {library.length > 0 ? (
+                <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
+                {library.slice().reverse().map((song, idx) => (
+                    <SongRow 
+                    key={song.id} 
+                    song={song} 
+                    index={idx} 
+                    isActive={currentSong?.id === song.id}
+                    isPlaying={isPlaying}
+                    onPlay={onPlaySong} 
+                    />
+                ))}
+                </div>
+            ) : (
+                <div className="text-gray-500 text-center py-20 flex flex-col items-center gap-4">
+                   <Clock size={48} className="opacity-20" />
+                   <p>暂无最近添加的音乐。</p>
+                </div>
+            )}
+        </div>
+     )
+  }
+
+  // VIEW: ALBUMS
+  if (currentView === View.ALBUMS) {
+      return (
+          <div className="pb-32 animate-in fade-in duration-300">
+              <SectionHeader title="专辑" showAll={false} />
+              {derivedAlbums.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                      {derivedAlbums.map(album => (
+                          <AlbumCard key={album.id} album={album} onClick={onAlbumClick} />
+                      ))}
+                  </div>
+              ) : (
+                <div className="text-gray-500 text-center py-20 flex flex-col items-center gap-4">
+                   <Disc size={48} className="opacity-20" />
+                   <p>暂无专辑信息。</p>
+                </div>
+              )}
+          </div>
+      )
+  }
+
+  // VIEW: ARTISTS
+  if (currentView === View.ARTISTS) {
+    return (
+        <div className="pb-32 animate-in fade-in duration-300">
+            <SectionHeader title="艺人" showAll={false} />
+            {derivedArtists.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    {derivedArtists.map(artist => (
+                        <div 
+                            key={artist.id} 
+                            onClick={() => onAlbumClick(artist)} // Reusing album click to show songs
+                            className="group flex flex-col items-center gap-3 cursor-pointer p-4 rounded-xl hover:bg-white/5 transition-colors"
+                        >
+                            <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-lg bg-[#2c2c2c]">
+                                <img src={artist.cover} alt={artist.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Play size={32} fill="currentColor" className="text-white drop-shadow-lg" />
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <h3 className="text-base font-bold text-white truncate w-full">{artist.title}</h3>
+                                <p className="text-xs text-gray-400">艺人</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+              <div className="text-gray-500 text-center py-20 flex flex-col items-center gap-4">
+                   <User size={48} className="opacity-20" />
+                   <p>暂无艺人信息。</p>
+              </div>
+            )}
+        </div>
+    )
   }
 
   // VIEW: AI DJ

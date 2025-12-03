@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, ListMusic, MessageSquare, Music, Maximize2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, ListMusic, Maximize2 } from 'lucide-react';
 import { Song, PlayerState } from '../types';
 
 interface PlayerBarProps {
@@ -10,9 +10,21 @@ interface PlayerBarProps {
   onVolumeChange: (val: number) => void;
   onSeek: (time: number) => void;
   onToggleFullScreen: () => void;
+  onToggleQueue: () => void;
+  isQueueOpen: boolean;
 }
 
-const PlayerBar: React.FC<PlayerBarProps> = ({ playerState, onTogglePlay, onNext, onPrev, onVolumeChange, onSeek, onToggleFullScreen }) => {
+const PlayerBar: React.FC<PlayerBarProps> = ({ 
+  playerState, 
+  onTogglePlay, 
+  onNext, 
+  onPrev, 
+  onVolumeChange, 
+  onSeek, 
+  onToggleFullScreen,
+  onToggleQueue,
+  isQueueOpen
+}) => {
   const { currentSong, isPlaying, volume, progress, duration } = playerState;
 
   const formatTime = (time: number) => {
@@ -114,8 +126,12 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ playerState, onTogglePlay, onNext
         className="flex items-center justify-end w-1/3 gap-4"
         onClick={(e) => e.stopPropagation()}
       >
-       
-         <button className="text-gray-400 hover:text-rose-500 transition-colors">
+        
+         <button 
+            className={`transition-colors ${isQueueOpen ? 'text-rose-500' : 'text-gray-400 hover:text-rose-500'}`}
+            onClick={onToggleQueue}
+            title="播放队列"
+         >
              <ListMusic size={18} />
         </button>
         <div className="flex items-center gap-2 w-24 group">

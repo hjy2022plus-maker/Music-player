@@ -33,7 +33,10 @@ export enum View {
   RADIO = 'RADIO',
   ALBUM_DETAILS = 'ALBUM_DETAILS',
   SEARCH = 'SEARCH',
-  AI_DJ = 'AI_DJ'
+  AI_DJ = 'AI_DJ',
+  RECENTLY_ADDED = 'RECENTLY_ADDED',
+  ARTISTS = 'ARTISTS',
+  ALBUMS = 'ALBUMS'
 }
 
 export interface PlayerState {
