@@ -212,6 +212,41 @@ const App: React.FC = () => {
     handlePlaySong(library[prevIndex]);
   };
 
+  const handleDeleteSong = (song: Song) => {
+    console.log('[Delete] Deleting song:', song.title, song.id);
+
+    // Remove from library
+    setLibrary(prev => {
+      const updated = prev.filter(s => s.id !== song.id);
+      console.log('[Delete] Updated library, now has', updated.length, 'songs');
+      return updated;
+    });
+
+    // If the deleted song is currently playing, stop playback
+    if (playerState.currentSong?.id === song.id) {
+      setPlayerState(prev => ({
+        ...prev,
+        currentSong: null,
+        isPlaying: false,
+        progress: 0
+      }));
+    }
+
+    // Remove from queue if present
+    setPlayerState(prev => ({
+      ...prev,
+      queue: prev.queue.filter(s => s.id !== song.id)
+    }));
+
+    // Optionally: Delete from server if it's an uploaded file
+    if (song.url && song.url.startsWith('http://localhost:4000/uploads/')) {
+      const filename = song.url.split('/').pop();
+      fetch(`${MOCK_API_BASE}/delete/${filename}`, { method: 'DELETE' })
+        .then(() => console.log('[Delete] File deleted from server'))
+        .catch(err => console.warn('[Delete] Failed to delete file from server:', err));
+    }
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     if (!files.length) return;
@@ -367,7 +402,7 @@ const App: React.FC = () => {
           
           <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth no-scrollbar z-10">
             <div className="max-w-7xl mx-auto px-6 md:px-12 pt-6">
-              <MainView 
+              <MainView
                 currentView={currentView}
                 activeAlbum={activeAlbum}
                 currentSong={playerState.currentSong}
@@ -377,6 +412,7 @@ const App: React.FC = () => {
                 onAlbumClick={handleAlbumClick}
                 onBack={() => setCurrentView(View.HOME)}
                 onImport={handleImport}
+                onDeleteSong={handleDeleteSong}
               />
             </div>
           </main>

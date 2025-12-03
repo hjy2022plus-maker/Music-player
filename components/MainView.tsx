@@ -14,18 +14,20 @@ interface MainViewProps {
   onAlbumClick: (album: Album) => void;
   onBack: () => void;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDeleteSong?: (song: Song) => void;
 }
 
-const MainView: React.FC<MainViewProps> = ({ 
-  currentView, 
-  activeAlbum, 
-  currentSong, 
-  isPlaying, 
+const MainView: React.FC<MainViewProps> = ({
+  currentView,
+  activeAlbum,
+  currentSong,
+  isPlaying,
   library,
-  onPlaySong, 
+  onPlaySong,
   onAlbumClick,
   onBack,
-  onImport
+  onImport,
+  onDeleteSong
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,13 +110,14 @@ const MainView: React.FC<MainViewProps> = ({
 
         <div className="bg-[#1c1c1e]/50 rounded-xl p-2 md:p-6 backdrop-blur-sm">
            {activeAlbum.songs.map((song, idx) => (
-             <SongRow 
-               key={song.id} 
-               song={song} 
-               index={idx} 
+             <SongRow
+               key={song.id}
+               song={song}
+               index={idx}
                isActive={currentSong?.id === song.id}
                isPlaying={isPlaying}
-               onPlay={onPlaySong} 
+               onPlay={onPlaySong}
+               onDelete={onDeleteSong}
              />
            ))}
         </div>
@@ -130,13 +133,14 @@ const MainView: React.FC<MainViewProps> = ({
             {library.length > 0 ? (
                 <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
                 {library.slice().reverse().map((song, idx) => (
-                    <SongRow 
-                    key={song.id} 
-                    song={song} 
-                    index={idx} 
+                    <SongRow
+                    key={song.id}
+                    song={song}
+                    index={idx}
                     isActive={currentSong?.id === song.id}
                     isPlaying={isPlaying}
-                    onPlay={onPlaySong} 
+                    onPlay={onPlaySong}
+                    onDelete={onDeleteSong}
                     />
                 ))}
                 </div>
@@ -246,13 +250,14 @@ const MainView: React.FC<MainViewProps> = ({
       {library.length > 0 ? (
         <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
           {library.map((song, idx) => (
-             <SongRow 
-               key={song.id} 
-               song={song} 
-               index={idx} 
+             <SongRow
+               key={song.id}
+               song={song}
+               index={idx}
                isActive={currentSong?.id === song.id}
                isPlaying={isPlaying}
-               onPlay={onPlaySong} 
+               onPlay={onPlaySong}
+               onDelete={onDeleteSong}
              />
           ))}
         </div>

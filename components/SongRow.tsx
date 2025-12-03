@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, BarChart2 } from 'lucide-react';
+import { Play, BarChart2, Trash2 } from 'lucide-react';
 import { Song } from '../types';
 
 interface SongRowProps {
@@ -8,11 +8,12 @@ interface SongRowProps {
   isActive: boolean;
   isPlaying: boolean;
   onPlay: (song: Song) => void;
+  onDelete?: (song: Song) => void;
 }
 
-const SongRow: React.FC<SongRowProps> = ({ song, index, isActive, isPlaying, onPlay }) => {
+const SongRow: React.FC<SongRowProps> = ({ song, index, isActive, isPlaying, onPlay, onDelete }) => {
   return (
-    <div 
+    <div
       className={`group flex items-center gap-4 px-4 py-2 rounded-md transition-colors cursor-default ${
         isActive ? 'bg-white/10' : 'hover:bg-white/5'
       }`}
@@ -20,14 +21,14 @@ const SongRow: React.FC<SongRowProps> = ({ song, index, isActive, isPlaying, onP
     >
       <div className="w-6 text-center text-sm text-gray-500 font-medium flex justify-center items-center">
         <span className={`${isActive ? 'hidden' : 'group-hover:hidden'}`}>{index + 1}</span>
-        <button 
+        <button
           onClick={() => onPlay(song)}
           className={`text-gray-300 hover:text-rose-500 ${isActive ? 'block' : 'hidden group-hover:block'}`}
         >
           {isActive && isPlaying ? <BarChart2 size={16} className="text-rose-500 animate-pulse" /> : <Play size={16} fill="currentColor" />}
         </button>
       </div>
-      
+
       <div className="relative w-10 h-10 rounded bg-[#2c2c2c] overflow-hidden flex-shrink-0">
         <img src={song.cover} alt="Cover" className="w-full h-full object-cover" />
       </div>
@@ -46,6 +47,19 @@ const SongRow: React.FC<SongRowProps> = ({ song, index, isActive, isPlaying, onP
       <div className="text-xs text-gray-500 font-mono">
         {song.duration}
       </div>
+
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(song);
+          }}
+          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-2 rounded-md hover:bg-red-500/10"
+          title="删除歌曲"
+        >
+          <Trash2 size={16} />
+        </button>
+      )}
     </div>
   );
 };
