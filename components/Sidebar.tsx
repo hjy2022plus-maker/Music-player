@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Home, Grid, Music, Clock, User, Disc, Search } from 'lucide-react';
 import { View } from '../types';
 import { ACCENT_COLOR } from '../constants';
@@ -43,7 +43,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
             type="text"
             placeholder="搜索"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              onSearch(e.target.value);
+            }}
             className="w-full bg-white/10 text-white pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 placeholder-gray-400 border border-transparent focus:border-white/10"
           />
         </form>

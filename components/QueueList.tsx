@@ -4,14 +4,14 @@ import { Play, BarChart2 } from 'lucide-react';
 
 interface QueueListProps {
   isOpen: boolean;
-  library: Song[];
+  queue: Song[];
   currentSong: Song | null;
   isPlaying: boolean;
   onPlay: (song: Song) => void;
   onClose: () => void;
 }
 
-const QueueList: React.FC<QueueListProps> = ({ isOpen, library, currentSong, isPlaying, onPlay, onClose }) => {
+const QueueList: React.FC<QueueListProps> = ({ isOpen, queue, currentSong, isPlaying, onPlay, onClose }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,12 +36,12 @@ const QueueList: React.FC<QueueListProps> = ({ isOpen, library, currentSong, isP
       </div>
       
       <div className="overflow-y-auto h-[calc(100%-80px)] p-2 space-y-1 no-scrollbar" ref={scrollRef}>
-        {library.length === 0 ? (
+        {queue.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-gray-500 text-sm gap-2">
                 <span>暂无歌曲</span>
             </div>
         ) : (
-            library.map((song) => {
+            queue.map((song) => {
                 const isActive = currentSong?.id === song.id;
                 return (
                     <div 
@@ -78,3 +78,4 @@ const QueueList: React.FC<QueueListProps> = ({ isOpen, library, currentSong, isP
 };
 
 export default QueueList;
+

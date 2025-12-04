@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import PlayerBar from './components/PlayerBar';
 import MainView from './components/MainView';
@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [library, setLibrary] = useState<Song[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasInitialized = useRef(false);
@@ -115,13 +116,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Persist queue with stable URLs so queue view survives refresh
-    const persistableQueue = playerState.queue.filter(s => s.url.startsWith('http'));
+    const persistableQueue = playerState.queue.filter(s => s.url && s.url.startsWith('http'));
     try {
       localStorage.setItem(LOCAL_QUEUE_KEY, JSON.stringify(persistableQueue));
     } catch (error) {
       console.warn('Failed to persist queue', error);
     }
   }, [playerState.queue]);
+
+  const filteredLibrary = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return [];
+    return library.filter(song => {
+      const haystacks = [song.title, song.artist, song.album].map(v => v.toLowerCase());
+      return haystacks.some(field => field.includes(term));
+    });
+  }, [searchTerm, library]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -165,19 +175,25 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePlaySong = (song: Song) => {
-    // If playing same song, toggle play/pause
+  const handlePlaySong = (song: Song, sourceList?: Song[]) => {
+    const queueSource = sourceList && sourceList.length
+      ? sourceList
+      : (library.length ? library : [song]);
+
+    // If playing same song, toggle play/pause but refresh queue context
     if (playerState.currentSong?.id === song.id) {
-      setPlayerState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
-    } else {
-      // New song - setting isPlaying true will trigger useEffect to play
-      setPlayerState(prev => ({
-        ...prev,
-        currentSong: song,
-        isPlaying: true,
-        progress: 0
-      }));
+      setPlayerState(prev => ({ ...prev, isPlaying: !prev.isPlaying, queue: queueSource }));
+      return;
     }
+
+    // New song - setting isPlaying true will trigger useEffect to play
+    setPlayerState(prev => ({
+      ...prev,
+      currentSong: song,
+      isPlaying: true,
+      progress: 0,
+      queue: queueSource
+    }));
   };
 
   const handleAlbumClick = (album: Album) => {
@@ -199,17 +215,19 @@ const App: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (!playerState.currentSong || library.length === 0) return;
-    const currentIndex = library.findIndex(s => s.id === playerState.currentSong?.id);
-    const nextIndex = (currentIndex + 1) % library.length;
-    handlePlaySong(library[nextIndex]);
+    const playbackQueue = playerState.queue.length ? playerState.queue : library;
+    if (!playerState.currentSong || playbackQueue.length === 0) return;
+    const currentIndex = playbackQueue.findIndex(s => s.id === playerState.currentSong?.id);
+    const nextIndex = (currentIndex + 1) % playbackQueue.length;
+    handlePlaySong(playbackQueue[nextIndex], playbackQueue);
   };
 
   const handlePrev = () => {
-    if (!playerState.currentSong || library.length === 0) return;
-    const currentIndex = library.findIndex(s => s.id === playerState.currentSong?.id);
-    const prevIndex = (currentIndex - 1 + library.length) % library.length;
-    handlePlaySong(library[prevIndex]);
+    const playbackQueue = playerState.queue.length ? playerState.queue : library;
+    if (!playerState.currentSong || playbackQueue.length === 0) return;
+    const currentIndex = playbackQueue.findIndex(s => s.id === playerState.currentSong?.id);
+    const prevIndex = (currentIndex - 1 + playbackQueue.length) % playbackQueue.length;
+    handlePlaySong(playbackQueue[prevIndex], playbackQueue);
   };
 
   const handleDeleteSong = (song: Song) => {
@@ -335,6 +353,15 @@ const App: React.FC = () => {
     e.target.value = '';
   };
 
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    if (term.trim()) {
+      setCurrentView(View.SEARCH);
+    } else {
+      setCurrentView(View.HOME);
+    }
+  };
+
   return (
     <div className="relative flex h-screen text-white overflow-hidden font-sans selection:bg-rose-500 selection:text-white">
       
@@ -375,10 +402,10 @@ const App: React.FC = () => {
 
       <QueueList 
         isOpen={isQueueOpen} 
-        library={library} 
+        queue={playerState.queue.length ? playerState.queue : library} 
         currentSong={playerState.currentSong}
         isPlaying={playerState.isPlaying}
-        onPlay={handlePlaySong}
+        onPlay={(song) => handlePlaySong(song, playerState.queue.length ? playerState.queue : library)}
         onClose={() => setIsQueueOpen(false)}
       />
 
@@ -397,7 +424,7 @@ const App: React.FC = () => {
           <Sidebar 
             currentView={currentView} 
             onChangeView={handleNavChange} 
-            onSearch={(term) => console.log('Searching', term)} 
+            onSearch={handleSearch} 
           />
           
           <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth no-scrollbar z-10">
@@ -413,6 +440,8 @@ const App: React.FC = () => {
                 onBack={() => setCurrentView(View.HOME)}
                 onImport={handleImport}
                 onDeleteSong={handleDeleteSong}
+                searchTerm={searchTerm}
+                searchResults={filteredLibrary}
               />
             </div>
           </main>

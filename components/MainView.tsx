@@ -10,11 +10,13 @@ interface MainViewProps {
   currentSong: Song | null;
   isPlaying: boolean;
   library: Song[];
-  onPlaySong: (song: Song) => void;
+  onPlaySong: (song: Song, sourceList?: Song[]) => void;
   onAlbumClick: (album: Album) => void;
   onBack: () => void;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteSong?: (song: Song) => void;
+  searchTerm: string;
+  searchResults: Song[];
 }
 
 const MainView: React.FC<MainViewProps> = ({
@@ -27,7 +29,9 @@ const MainView: React.FC<MainViewProps> = ({
   onAlbumClick,
   onBack,
   onImport,
-  onDeleteSong
+  onDeleteSong,
+  searchTerm,
+  searchResults
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,14 +113,14 @@ const MainView: React.FC<MainViewProps> = ({
         </div>
 
         <div className="bg-[#1c1c1e]/50 rounded-xl p-2 md:p-6 backdrop-blur-sm">
-           {activeAlbum.songs.map((song, idx) => (
+             {activeAlbum.songs.map((song, idx) => (
              <SongRow
                key={song.id}
                song={song}
                index={idx}
                isActive={currentSong?.id === song.id}
                isPlaying={isPlaying}
-               onPlay={onPlaySong}
+               onPlay={(s) => onPlaySong(s, activeAlbum.songs)}
                onDelete={onDeleteSong}
              />
            ))}
@@ -127,19 +131,20 @@ const MainView: React.FC<MainViewProps> = ({
 
   // VIEW: RECENTLY ADDED
   if (currentView === View.RECENTLY_ADDED) {
+     const recentSongs = library.slice().reverse();
      return (
         <div className="pb-32 animate-in fade-in duration-300">
             <SectionHeader title="最近添加" showAll={false} />
             {library.length > 0 ? (
                 <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
-                {library.slice().reverse().map((song, idx) => (
+                {recentSongs.map((song, idx) => (
                     <SongRow
                     key={song.id}
                     song={song}
                     index={idx}
                     isActive={currentSong?.id === song.id}
                     isPlaying={isPlaying}
-                    onPlay={onPlaySong}
+                    onPlay={(s) => onPlaySong(s, recentSongs)}
                     onDelete={onDeleteSong}
                     />
                 ))}
@@ -211,6 +216,39 @@ const MainView: React.FC<MainViewProps> = ({
     )
   }
 
+  // VIEW: SEARCH
+  if (currentView === View.SEARCH) {
+    const hasTerm = searchTerm.trim().length > 0;
+    return (
+      <div className="pb-32 animate-in fade-in duration-300">
+        <SectionHeader title="搜索结果" showAll={false} />
+        {!hasTerm ? (
+          <div className="bg-[#1c1c1e] rounded-xl p-12 border border-white/5 mb-8 text-center text-gray-500">
+            输入关键词以查找已上传的音频文件。
+          </div>
+        ) : searchResults.length > 0 ? (
+          <div className="bg-[#1c1c1e] rounded-xl p-2 border border-white/5 mb-8">
+            {searchResults.map((song, idx) => (
+              <SongRow
+                key={song.id}
+                song={song}
+                index={idx}
+                isActive={currentSong?.id === song.id}
+                isPlaying={isPlaying}
+                onPlay={(s) => onPlaySong(s, searchResults)}
+                onDelete={onDeleteSong}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#1c1c1e] rounded-xl p-12 border border-white/5 mb-8 text-center text-gray-500">
+            未找到匹配的音频文件。
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // VIEW: HOME (Default)
   return (
     <div className="pb-32 animate-in fade-in duration-500">
@@ -256,7 +294,7 @@ const MainView: React.FC<MainViewProps> = ({
                index={idx}
                isActive={currentSong?.id === song.id}
                isPlaying={isPlaying}
-               onPlay={onPlaySong}
+               onPlay={(s) => onPlaySong(s, library)}
                onDelete={onDeleteSong}
              />
           ))}
