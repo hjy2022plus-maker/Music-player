@@ -390,7 +390,7 @@ const App: React.FC = () => {
           onPrev={handlePrev}
           onVolumeChange={(vol) => setPlayerState(p => ({ ...p, volume: vol }))}
           onSeek={handleSeek}
-          onToggleFullScreen={() => setIsFullScreen(true)}
+          onToggleFullScreen={() => setIsFullScreen(false)}
         />
       ) : (
         <>
