@@ -4,7 +4,7 @@ import PlayerBar from './components/PlayerBar';
 import MainView from './components/MainView';
 import FullScreenPlayer from './components/FullScreenPlayer';
 import QueueList from './components/QueueList';
-import { Song, Album, View, PlayerState } from './types';
+import { Song, Album, View, PlayerState, RepeatMode } from './types';
 import { MOCK_API_BASE } from './constants';
 
 const App: React.FC = () => {
@@ -26,7 +26,9 @@ const App: React.FC = () => {
     volume: 50,
     progress: 0,
     duration: 0,
-    queue: []
+    queue: [],
+    repeatMode: RepeatMode.ALL,
+    isShuffle: false
   });
 
   // Handle Audio Element Logic
@@ -165,6 +167,13 @@ const App: React.FC = () => {
   };
 
   const handleSongEnd = () => {
+    if (playerState.repeatMode === RepeatMode.ONE) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+      return;
+    }
     handleNext();
   };
 
@@ -207,6 +216,18 @@ const App: React.FC = () => {
     }
   };
 
+  const handleToggleShuffle = () => {
+    setPlayerState(prev => ({ ...prev, isShuffle: !prev.isShuffle }));
+  };
+
+  const handleToggleRepeat = () => {
+    setPlayerState(prev => {
+      if (prev.repeatMode === RepeatMode.OFF) return { ...prev, repeatMode: RepeatMode.ALL };
+      if (prev.repeatMode === RepeatMode.ALL) return { ...prev, repeatMode: RepeatMode.ONE };
+      return { ...prev, repeatMode: RepeatMode.OFF };
+    });
+  };
+
   const handleNavChange = (view: View) => {
     setCurrentView(view);
     if (view !== View.ALBUM_DETAILS) {
@@ -218,7 +239,28 @@ const App: React.FC = () => {
     const playbackQueue = playerState.queue.length ? playerState.queue : library;
     if (!playerState.currentSong || playbackQueue.length === 0) return;
     const currentIndex = playbackQueue.findIndex(s => s.id === playerState.currentSong?.id);
-    const nextIndex = (currentIndex + 1) % playbackQueue.length;
+
+    if (playerState.isShuffle) {
+      if (playbackQueue.length === 1) {
+        handlePlaySong(playbackQueue[0], playbackQueue);
+        return;
+      }
+
+      let nextIndex = currentIndex;
+      while (nextIndex === currentIndex) {
+        nextIndex = Math.floor(Math.random() * playbackQueue.length);
+      }
+      handlePlaySong(playbackQueue[nextIndex], playbackQueue);
+      return;
+    }
+
+    const isLastSong = currentIndex === playbackQueue.length - 1;
+    if (isLastSong && playerState.repeatMode === RepeatMode.OFF) {
+      setPlayerState(prev => ({ ...prev, isPlaying: false, progress: 0 }));
+      return;
+    }
+
+    const nextIndex = isLastSong ? 0 : currentIndex + 1;
     handlePlaySong(playbackQueue[nextIndex], playbackQueue);
   };
 
@@ -226,6 +268,21 @@ const App: React.FC = () => {
     const playbackQueue = playerState.queue.length ? playerState.queue : library;
     if (!playerState.currentSong || playbackQueue.length === 0) return;
     const currentIndex = playbackQueue.findIndex(s => s.id === playerState.currentSong?.id);
+
+    if (playerState.isShuffle) {
+      if (playbackQueue.length === 1) {
+        handlePlaySong(playbackQueue[0], playbackQueue);
+        return;
+      }
+
+      let prevIndex = currentIndex;
+      while (prevIndex === currentIndex) {
+        prevIndex = Math.floor(Math.random() * playbackQueue.length);
+      }
+      handlePlaySong(playbackQueue[prevIndex], playbackQueue);
+      return;
+    }
+
     const prevIndex = (currentIndex - 1 + playbackQueue.length) % playbackQueue.length;
     handlePlaySong(playbackQueue[prevIndex], playbackQueue);
   };
@@ -418,6 +475,8 @@ const App: React.FC = () => {
           onVolumeChange={(vol) => setPlayerState(p => ({ ...p, volume: vol }))}
           onSeek={handleSeek}
           onToggleFullScreen={() => setIsFullScreen(false)}
+          onToggleShuffle={handleToggleShuffle}
+          onToggleRepeat={handleToggleRepeat}
         />
       ) : (
         <>
@@ -456,6 +515,8 @@ const App: React.FC = () => {
             onToggleFullScreen={() => setIsFullScreen(true)}
             onToggleQueue={() => setIsQueueOpen(!isQueueOpen)}
             isQueueOpen={isQueueOpen}
+            onToggleShuffle={handleToggleShuffle}
+            onToggleRepeat={handleToggleRepeat}
           />
         </>
       )}

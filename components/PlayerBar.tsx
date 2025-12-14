@@ -1,6 +1,6 @@
 import React from 'react';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, ListMusic, Maximize2 } from 'lucide-react';
-import { Song, PlayerState } from '../types';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, ListMusic, Maximize2 } from 'lucide-react';
+import { PlayerState, RepeatMode } from '../types';
 
 interface PlayerBarProps {
   playerState: PlayerState;
@@ -12,6 +12,8 @@ interface PlayerBarProps {
   onToggleFullScreen: () => void;
   onToggleQueue: () => void;
   isQueueOpen: boolean;
+  onToggleShuffle: () => void;
+  onToggleRepeat: () => void;
 }
 
 const PlayerBar: React.FC<PlayerBarProps> = ({ 
@@ -23,9 +25,11 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
   onSeek, 
   onToggleFullScreen,
   onToggleQueue,
-  isQueueOpen
+  isQueueOpen,
+  onToggleShuffle,
+  onToggleRepeat
 }) => {
-  const { currentSong, isPlaying, volume, progress, duration } = playerState;
+  const { currentSong, isPlaying, volume, progress, duration, isShuffle, repeatMode } = playerState;
 
   const formatTime = (time: number) => {
     if (!time || isNaN(time)) return "0:00";
@@ -69,7 +73,11 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
       {/* Center Controls */}
       <div className="flex flex-col items-center w-1/3 max-w-xl">
         <div className="flex items-center gap-6 mb-1">
-          <button className="text-gray-400 hover:text-rose-500 transition-colors">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onToggleShuffle(); }}
+            className={`transition-colors ${isShuffle ? 'text-rose-500' : 'text-gray-400 hover:text-white'}`}
+            title={isShuffle ? "关闭随机播放" : "开启随机播放"}
+          >
             <Shuffle size={16} />
           </button>
           <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="text-gray-200 hover:text-white transition-colors hover:scale-110">
@@ -84,8 +92,12 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
           <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="text-gray-200 hover:text-white transition-colors hover:scale-110">
             <SkipForward size={24} fill="currentColor" />
           </button>
-          <button className="text-gray-400 hover:text-rose-500 transition-colors">
-            <Repeat size={16} />
+          <button 
+            onClick={(e) => { e.stopPropagation(); onToggleRepeat(); }}
+            className={`transition-colors ${repeatMode !== RepeatMode.OFF ? 'text-rose-500' : 'text-gray-400 hover:text-white'}`}
+            title="切换循环模式"
+          >
+            {repeatMode === RepeatMode.ONE ? <Repeat1 size={16} /> : <Repeat size={16} />}
           </button>
         </div>
         

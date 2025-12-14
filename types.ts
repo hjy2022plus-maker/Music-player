@@ -35,7 +35,14 @@ export enum View {
   SEARCH = 'SEARCH',
   RECENTLY_ADDED = 'RECENTLY_ADDED',
   ARTISTS = 'ARTISTS',
-  ALBUMS = 'ALBUMS'
+  ALBUMS = 'ALBUMS',
+  AI_DJ = 'AI_DJ'
+}
+
+export enum RepeatMode {
+  OFF = 'OFF',
+  ALL = 'ALL',
+  ONE = 'ONE'
 }
 
 export interface PlayerState {
@@ -45,4 +52,6 @@ export interface PlayerState {
   progress: number;
   duration?: number; // Added duration state
   queue: Song[];
+  repeatMode: RepeatMode;
+  isShuffle: boolean;
 }

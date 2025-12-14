@@ -1,6 +1,6 @@
 import React from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, ListMusic, MessageSquare, Star, MoreHorizontal, ChevronDown } from 'lucide-react';
-import { PlayerState } from '../types';
+import { Play, Pause, SkipBack, SkipForward, Volume2, ListMusic, MessageSquare, Star, MoreHorizontal, ChevronDown, Shuffle, Repeat, Repeat1 } from 'lucide-react';
+import { PlayerState, RepeatMode } from '../types';
 
 interface FullScreenPlayerProps {
   playerState: PlayerState;
@@ -10,6 +10,8 @@ interface FullScreenPlayerProps {
   onVolumeChange: (val: number) => void;
   onSeek: (time: number) => void;
   onToggleFullScreen: () => void;
+  onToggleShuffle?: () => void;
+  onToggleRepeat?: () => void;
 }
 
 const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ 
@@ -19,9 +21,11 @@ const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({
   onPrev, 
   onVolumeChange, 
   onSeek,
-  onToggleFullScreen
+  onToggleFullScreen,
+  onToggleShuffle,
+  onToggleRepeat
 }) => {
-  const { currentSong, isPlaying, volume, progress, duration } = playerState;
+  const { currentSong, isPlaying, volume, progress, duration, isShuffle, repeatMode } = playerState;
 
   const formatTime = (time: number) => {
     if (!time || isNaN(time)) return "0:00";
@@ -107,9 +111,24 @@ const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({
 
         {/* Playback Controls */}
         <div className="flex items-center justify-between w-full mt-2">
-           {/* Empty Left Spacer for Balance or Shuffle/Repeat if needed */}
-           <div className="flex-1 flex justify-start gap-4">
-              {/* Could put shuffle/repeat here if sticking strictly to screenshot which has them elsewhere or hidden */}
+           {/* Shuffle / Repeat */}
+           <div className="flex-1 flex justify-start gap-6">
+              {onToggleShuffle && (
+                 <button 
+                    onClick={onToggleShuffle}
+                    className={`transition-colors ${isShuffle ? 'text-rose-500' : 'text-white/50 hover:text-white'}`}
+                 >
+                    <Shuffle size={24} />
+                 </button>
+              )}
+              {onToggleRepeat && (
+                 <button 
+                    onClick={onToggleRepeat}
+                    className={`transition-colors ${repeatMode !== RepeatMode.OFF ? 'text-rose-500' : 'text-white/50 hover:text-white'}`}
+                 >
+                    {repeatMode === RepeatMode.ONE ? <Repeat1 size={24} /> : <Repeat size={24} />}
+                 </button>
+              )}
            </div>
 
            {/* Center Big Controls */}
