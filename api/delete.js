@@ -1,8 +1,8 @@
 import { del } from '@vercel/blob';
-import { kv } from '@vercel/kv';
+import { redisHelpers } from '../lib/redis.js';
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 export default async function handler(req) {
@@ -42,8 +42,8 @@ export default async function handler(req) {
       });
     }
 
-    // 从 KV 获取文件元数据
-    const uploadedSongs = await kv.get('uploaded-songs') || [];
+    // 从 Redis 获取文件元数据
+    const uploadedSongs = await redisHelpers.getJSON('uploaded-songs') || [];
     const fileIndex = uploadedSongs.findIndex(f => f.id === fileId);
 
     if (fileIndex === -1) {
@@ -69,10 +69,10 @@ export default async function handler(req) {
       // 继续删除元数据，即使 Blob 删除失败
     }
 
-    // 从 KV 删除元数据
+    // 从 Redis 删除元数据
     uploadedSongs.splice(fileIndex, 1);
-    await kv.set('uploaded-songs', uploadedSongs);
-    console.log('[Delete] Deleted file metadata from KV:', fileId);
+    await redisHelpers.setJSON('uploaded-songs', uploadedSongs);
+    console.log('[Delete] Deleted file metadata from Redis:', fileId);
 
     return new Response(JSON.stringify({
       success: true,

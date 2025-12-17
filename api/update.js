@@ -1,7 +1,7 @@
-import { kv } from '@vercel/kv';
+import { redisHelpers } from '../lib/redis.js';
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 export default async function handler(req) {
@@ -43,8 +43,8 @@ export default async function handler(req) {
 
     const body = await req.json();
 
-    // 从 KV 获取文件列表
-    const uploadedSongs = await kv.get('uploaded-songs') || [];
+    // 从 Redis 获取文件列表
+    const uploadedSongs = await redisHelpers.getJSON('uploaded-songs') || [];
     const fileIndex = uploadedSongs.findIndex(f => f.id === fileId);
 
     if (fileIndex === -1) {
@@ -80,7 +80,7 @@ export default async function handler(req) {
     };
 
     uploadedSongs[fileIndex] = updatedFile;
-    await kv.set('uploaded-songs', uploadedSongs);
+    await redisHelpers.setJSON('uploaded-songs', uploadedSongs);
     console.log('[Update] Updated file metadata:', fileId);
 
     return new Response(JSON.stringify({

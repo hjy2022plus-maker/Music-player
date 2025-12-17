@@ -5,7 +5,6 @@ export const config = {
 };
 
 export default async function handler(req) {
-  // 处理 CORS 预检请求
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -28,12 +27,12 @@ export default async function handler(req) {
   }
 
   try {
-    // 从 Redis 获取已上传的歌曲列表
-    const uploadedSongs = await redisHelpers.getJSON('uploaded-songs') || [];
+    const uploadedFiles = await redisHelpers.getJSON('uploaded-songs') || [];
 
     return new Response(JSON.stringify({
-      items: uploadedSongs,
-      count: uploadedSongs.length,
+      success: true,
+      files: uploadedFiles,
+      count: uploadedFiles.length,
     }), {
       status: 200,
       headers: {
@@ -42,9 +41,10 @@ export default async function handler(req) {
       },
     });
   } catch (error) {
-    console.error('Get songs error:', error);
+    console.error('Get files error:', error);
     return new Response(JSON.stringify({
-      error: 'Failed to get songs',
+      success: false,
+      error: 'Failed to get files',
       message: error.message,
     }), {
       status: 500,

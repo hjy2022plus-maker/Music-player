@@ -1,8 +1,8 @@
 import { put } from '@vercel/blob';
-import { kv } from '@vercel/kv';
+import { redisHelpers } from '../lib/redis.js';
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 export default async function handler(req) {
@@ -48,9 +48,9 @@ export default async function handler(req) {
       addRandomSuffix: true,
     });
 
-    // 保存文件元数据到 Vercel KV
+    // 保存文件元数据到 Redis
     try {
-      const uploadedSongs = await kv.get('uploaded-songs') || [];
+      const uploadedSongs = await redisHelpers.getJSON('uploaded-songs') || [];
 
       const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const uploadedAt = new Date().toISOString();
@@ -92,8 +92,8 @@ export default async function handler(req) {
       };
 
       uploadedSongs.push(fileMetadata);
-      await kv.set('uploaded-songs', uploadedSongs);
-      console.log('[Upload] Saved file metadata to KV:', fileMetadata.id);
+      await redisHelpers.setJSON('uploaded-songs', uploadedSongs);
+      console.log('[Upload] Saved file metadata to Redis:', fileMetadata.id);
 
       return new Response(JSON.stringify({
         success: true,
@@ -111,9 +111,9 @@ export default async function handler(req) {
         },
       });
     } catch (kvError) {
-      console.error('[Upload] Failed to save to KV:', kvError);
+      console.error('[Upload] Failed to save to Redis:', kvError);
 
-      // 如果 KV 保存失败，仍然返回文件 URL（降级处理）
+      // 如果 Redis 保存失败，仍然返回文件 URL（降级处理）
       return new Response(JSON.stringify({
         success: true,
         warning: 'File uploaded but metadata not saved',
