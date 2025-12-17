@@ -64,6 +64,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, onSearch }
         <NavItem view={View.ARTISTS} icon={User} label="艺人" />
         <NavItem view={View.ALBUMS} icon={Disc} label="专辑" />
       </div>
+       <div className="mt-auto mb-24 px-2">
+        <div className="w-full border-2 border-dashed border-gray-700 rounded-lg p-4 flex flex-col items-center justify-center text-center">
+             <span className="text-gray-400 text-sm font-medium break-all">
+               黄景跃 25216950432
+             </span>
+        </div>
+      </div>
+
 
     </aside>
   );
