@@ -1,4 +1,4 @@
-# CLAUDE.md - Apple Music Replica 项目协作指南
+#  Apple Music Replica 项目协作指南
 
 ## 项目概述
 
