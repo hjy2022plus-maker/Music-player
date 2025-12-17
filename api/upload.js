@@ -1,49 +1,30 @@
 import { put } from '@vercel/blob';
 import { redisHelpers } from '../lib/redis.js';
 
-export const config = {
-  runtime: 'nodejs',
-};
+export default async function handler(req, res) {
+  // 设置 CORS 头
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
   // 处理 CORS 预检请求
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+    return res.status(200).json({ ok: true });
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const filename = searchParams.get('filename');
+    const { filename } = req.query;
 
     if (!filename) {
-      return new Response(JSON.stringify({ error: 'Filename is required' }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
+      return res.status(400).json({ error: 'Filename is required' });
     }
 
     // 上传到 Vercel Blob
-    const blob = await put(filename, req.body, {
+    const blob = await put(filename, req, {
       access: 'public',
       addRandomSuffix: true,
     });
@@ -95,7 +76,7 @@ export default async function handler(req) {
       await redisHelpers.setJSON('uploaded-songs', uploadedSongs);
       console.log('[Upload] Saved file metadata to Redis:', fileMetadata.id);
 
-      return new Response(JSON.stringify({
+      return res.status(200).json({
         success: true,
         file: fileMetadata,
         // 向后兼容旧格式
@@ -103,43 +84,31 @@ export default async function handler(req) {
         filename: filename,
         size: blob.size,
         type: blob.contentType || 'audio/mpeg',
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
       });
     } catch (kvError) {
       console.error('[Upload] Failed to save to Redis:', kvError);
 
       // 如果 Redis 保存失败，仍然返回文件 URL（降级处理）
-      return new Response(JSON.stringify({
+      return res.status(200).json({
         success: true,
         warning: 'File uploaded but metadata not saved',
         url: blob.url,
         filename: filename,
         size: blob.size,
         type: blob.contentType || 'audio/mpeg',
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
       });
     }
   } catch (error) {
     console.error('Upload error:', error);
-    return new Response(JSON.stringify({
+    return res.status(500).json({
       error: 'Upload failed',
       message: error.message,
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
     });
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};

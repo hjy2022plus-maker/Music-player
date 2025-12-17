@@ -1,45 +1,26 @@
 import { del } from '@vercel/blob';
 import { redisHelpers } from '../lib/redis.js';
 
-export const config = {
-  runtime: 'nodejs',
-};
+export default async function handler(req, res) {
+  // 设置 CORS 头
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
   // 处理 CORS 预检请求
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+    return res.status(200).json({ ok: true });
   }
 
   if (req.method !== 'DELETE') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const url = new URL(req.url);
-    const fileId = url.searchParams.get('id');
+    const { id: fileId } = req.query;
 
     if (!fileId) {
-      return new Response(JSON.stringify({ error: 'File ID is required' }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
+      return res.status(400).json({ error: 'File ID is required' });
     }
 
     // 从 Redis 获取文件元数据
@@ -47,13 +28,7 @@ export default async function handler(req) {
     const fileIndex = uploadedSongs.findIndex(f => f.id === fileId);
 
     if (fileIndex === -1) {
-      return new Response(JSON.stringify({ error: 'File not found' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
+      return res.status(404).json({ error: 'File not found' });
     }
 
     const fileMetadata = uploadedSongs[fileIndex];
@@ -74,31 +49,19 @@ export default async function handler(req) {
     await redisHelpers.setJSON('uploaded-songs', uploadedSongs);
     console.log('[Delete] Deleted file metadata from Redis:', fileId);
 
-    return new Response(JSON.stringify({
+    return res.status(200).json({
       success: true,
       message: 'File deleted successfully',
       deletedFile: {
         id: fileMetadata.id,
         filename: fileMetadata.filename,
       },
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
     });
   } catch (error) {
     console.error('Delete error:', error);
-    return new Response(JSON.stringify({
+    return res.status(500).json({
       error: 'Delete failed',
       message: error.message,
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
     });
   }
 }

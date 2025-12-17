@@ -1,57 +1,34 @@
 import { redisHelpers } from '../lib/redis.js';
 
-export const config = {
-  runtime: 'nodejs',
-};
+export default async function handler(req, res) {
+  // 设置 CORS 头
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
+  // 处理 CORS 预检请求
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+    return res.status(200).json({ ok: true });
   }
 
   if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const uploadedFiles = await redisHelpers.getJSON('uploaded-songs') || [];
 
-    return new Response(JSON.stringify({
+    return res.status(200).json({
       success: true,
       files: uploadedFiles,
       count: uploadedFiles.length,
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
     });
   } catch (error) {
     console.error('Get files error:', error);
-    return new Response(JSON.stringify({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get files',
       message: error.message,
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
     });
   }
 }

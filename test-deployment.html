@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vercel 部署测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { margin-bottom: 30px; color: #ff006e; }
+        .test-section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2a2a;
+        }
+        .test-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .status {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #666;
+        }
+        .status.pending { background: #ffa500; }
+        .status.success { background: #00ff00; }
+        .status.error { background: #ff0000; }
+        .test-title { font-size: 18px; font-weight: 600; }
+        .test-result {
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            background: #ff006e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        button:hover { background: #e6005f; }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .file-input {
+            display: none;
+        }
+        .upload-btn {
+            background: #4CAF50;
+        }
+        .upload-btn:hover {
+            background: #45a049;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .summary-item {
+            flex: 1;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .summary-label {
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Vercel 部署测试工具</h1>
+
+        <div class="test-section">
+            <label for="baseUrl">部署 URL:</label>
+            <input type="text" id="baseUrl" value="https://music-player-dh36ylwbp-hjys-projects-8f68df1e.vercel.app" placeholder="https://your-app.vercel.app">
+            <button onclick="runAllTests()">运行所有测试</button>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">
+                <div class="status" id="status-health"></div>
+                <div class="test-title">1. 健康检查端点</div>
+            </div>
+            <div class="test-result" id="result-health">等待测试...</div>
+            <button onclick="testHealth()">测试</button>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">
+                <div class="status" id="status-files"></div>
+                <div class="test-title">2. 文件列表端点</div>
+            </div>
+            <div class="test-result" id="result-files">等待测试...</div>
+            <button onclick="testFilesList()">测试</button>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">
+                <div class="status" id="status-upload"></div>
+                <div class="test-title">3. 文件上传功能</div>
+            </div>
+            <div class="test-result" id="result-upload">等待测试...</div>
+            <input type="file" id="fileInput" class="file-input" accept="audio/*" onchange="testUpload()">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">选择文件上传</button>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">
+                <div class="status" id="status-persistence"></div>
+                <div class="test-title">4. 数据持久化验证</div>
+            </div>
+            <div class="test-result" id="result-persistence">等待测试...</div>
+            <button onclick="testPersistence()">验证持久化</button>
+        </div>
+
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-label">通过</div>
+                <div class="summary-value" id="passed" style="color: #00ff00;">0</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">失败</div>
+                <div class="summary-value" id="failed" style="color: #ff0000;">0</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">待测试</div>
+                <div class="summary-value" id="pending" style="color: #ffa500;">4</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stats = { passed: 0, failed: 0, pending: 4 };
+
+        function updateStats() {
+            document.getElementById('passed').textContent = stats.passed;
+            document.getElementById('failed').textContent = stats.failed;
+            document.getElementById('pending').textContent = stats.pending;
+        }
+
+        function setStatus(testId, status) {
+            const statusEl = document.getElementById(`status-${testId}`);
+            statusEl.className = `status ${status}`;
+
+            if (status === 'success') {
+                stats.passed++;
+                stats.pending--;
+            } else if (status === 'error') {
+                stats.failed++;
+                stats.pending--;
+            }
+            updateStats();
+        }
+
+        function setResult(testId, content) {
+            document.getElementById(`result-${testId}`).textContent = content;
+        }
+
+        function getBaseUrl() {
+            return document.getElementById('baseUrl').value.trim().replace(/\/$/, '');
+        }
+
+        async function testHealth() {
+            const baseUrl = getBaseUrl();
+            setStatus('health', 'pending');
+            setResult('health', '正在测试...');
+
+            try {
+                const response = await fetch(`${baseUrl}/api/health`);
+                const data = await response.json();
+
+                if (response.ok && data.status === 'ok') {
+                    setStatus('health', 'success');
+                    setResult('health', `✅ 成功\n\n状态码: ${response.status}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`);
+                } else {
+                    setStatus('health', 'error');
+                    setResult('health', `❌ 失败\n\n状态码: ${response.status}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                setStatus('health', 'error');
+                setResult('health', `❌ 错误\n\n${error.message}`);
+            }
+        }
+
+        async function testFilesList() {
+            const baseUrl = getBaseUrl();
+            setStatus('files', 'pending');
+            setResult('files', '正在测试...');
+
+            try {
+                const response = await fetch(`${baseUrl}/api/files`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    setStatus('files', 'success');
+                    setResult('files', `✅ 成功\n\n状态码: ${response.status}\n文件数量: ${data.count}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`);
+                } else {
+                    setStatus('files', 'error');
+                    setResult('files', `❌ 失败\n\n状态码: ${response.status}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                setStatus('files', 'error');
+                setResult('files', `❌ 错误\n\n${error.message}`);
+            }
+        }
+
+        async function testUpload() {
+            const baseUrl = getBaseUrl();
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                setResult('upload', '❌ 未选择文件');
+                return;
+            }
+
+            setStatus('upload', 'pending');
+            setResult('upload', `正在上传: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)...`);
+
+            try {
+                const response = await fetch(`${baseUrl}/api/upload?filename=${encodeURIComponent(file.name)}`, {
+                    method: 'POST',
+                    body: file,
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    setStatus('upload', 'success');
+                    setResult('upload', `✅ 上传成功\n\n文件名: ${file.name}\n文件 ID: ${data.file.id}\nBlob URL: ${data.file.url}\n\n完整响应:\n${JSON.stringify(data, null, 2)}`);
+                } else {
+                    setStatus('upload', 'error');
+                    setResult('upload', `❌ 上传失败\n\n状态码: ${response.status}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                setStatus('upload', 'error');
+                setResult('upload', `❌ 错误\n\n${error.message}`);
+            }
+        }
+
+        async function testPersistence() {
+            const baseUrl = getBaseUrl();
+            setStatus('persistence', 'pending');
+            setResult('persistence', '正在验证数据持久化...');
+
+            try {
+                const response = await fetch(`${baseUrl}/api/files`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    if (data.count > 0) {
+                        setStatus('persistence', 'success');
+                        setResult('persistence', `✅ 数据持久化成功\n\n数据库中存储了 ${data.count} 个文件\n\n提示: 刷新页面后再次点击"验证持久化"，如果文件数量不变，说明数据已正确持久化到 Redis。\n\n文件列表:\n${data.files.map(f => `- ${f.title} (${f.filename})`).join('\n')}`);
+                    } else {
+                        setStatus('persistence', 'error');
+                        setResult('persistence', `⚠️ 数据库为空\n\n请先上传文件再验证持久化功能。`);
+                    }
+                } else {
+                    setStatus('persistence', 'error');
+                    setResult('persistence', `❌ 失败\n\n状态码: ${response.status}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                setStatus('persistence', 'error');
+                setResult('persistence', `❌ 错误\n\n${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            stats = { passed: 0, failed: 0, pending: 4 };
+            updateStats();
+
+            await testHealth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testFilesList();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await testPersistence();
+
+            alert(`测试完成!\n\n通过: ${stats.passed}\n失败: ${stats.failed}\n\n请手动测试文件上传功能。`);
+        }
+
+        // 页面加载时自动运行测试
+        window.addEventListener('load', () => {
+            console.log('部署测试工具已加载');
+        });
+    </script>
+</body>
+</html>
