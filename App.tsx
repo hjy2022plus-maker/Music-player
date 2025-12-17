@@ -10,13 +10,16 @@ import { MOCK_API_BASE } from './constants';
 const App: React.FC = () => {
   const LOCAL_LIBRARY_KEY = 'local_uploaded_library';
   const LOCAL_QUEUE_KEY = 'local_uploaded_queue';
+  const LOCAL_PLAYER_STATE_KEY = 'local_player_state';
+  const LOCAL_CURRENT_SONG_KEY = 'local_current_song';
+
   const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [activeAlbum, setActiveAlbum] = useState<Album | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [library, setLibrary] = useState<Song[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasInitialized = useRef(false);
 
@@ -84,6 +87,39 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.warn('Failed to restore queue', error);
+    }
+
+    // Hydrate player state (current song, volume, repeat mode, shuffle)
+    try {
+      const rawPlayerState = localStorage.getItem(LOCAL_PLAYER_STATE_KEY);
+      if (rawPlayerState) {
+        const parsed = JSON.parse(rawPlayerState);
+        console.log('[App] Restoring player state:', parsed);
+        setPlayerState(prev => ({
+          ...prev,
+          volume: parsed.volume ?? prev.volume,
+          repeatMode: parsed.repeatMode ?? prev.repeatMode,
+          isShuffle: parsed.isShuffle ?? prev.isShuffle,
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to restore player state', error);
+    }
+
+    // Hydrate current song
+    try {
+      const rawCurrentSong = localStorage.getItem(LOCAL_CURRENT_SONG_KEY);
+      if (rawCurrentSong) {
+        const parsed: Song = JSON.parse(rawCurrentSong);
+        console.log('[App] Restoring current song:', parsed.title);
+        setPlayerState(prev => ({
+          ...prev,
+          currentSong: hydrateSong(parsed),
+          isPlaying: false, // 不自动播放，用户需要手动点击
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to restore current song', error);
     }
 
     // Mark as initialized after a short delay to allow state to settle
