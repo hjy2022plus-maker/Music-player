@@ -1,35 +1,40 @@
-export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+ import { put } from '@vercel/blob';
+  import { NextRequest, NextResponse } from 'next/server';
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).json({ ok: true });
-  }
+  export const config = {
+    runtime: 'edge',
+  };
 
-  if (req.method === 'POST') {
+  export default async function handler(req: NextRequest) {
+    if (req.method !== 'POST') {
+      return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+    }
+
     try {
-      // Vercel Serverless Functions have limitations on file uploads
-      // For production, recommend using cloud storage (Cloudinary, S3, etc.)
+      const formData = await req.formData();
+      const file = formData.get('file') as File;
 
-      // For now, return a mock response
-      const mockUrl = `https://picsum.photos/seed/${Date.now()}/400/400`;
+      if (!file) {
+        return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+      }
 
-      return res.status(200).json({
-        url: mockUrl,
-        filename: `${Date.now()}_upload.mp3`,
-        size: 0,
-        type: 'audio/mpeg',
-        note: 'Mock upload - consider using Cloudinary or S3 for production'
+      // 上传到 Vercel Blob
+      const blob = await put(file.name, file, {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+
+      return NextResponse.json({
+        url: blob.url,
+        filename: file.name,
+        size: file.size,
+        type: file.type,
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Upload failed',
-        detail: error.message
-      });
+      console.error('Upload error:', error);
+      return NextResponse.json(
+        { error: 'Upload failed' },
+        { status: 500 }
+      );
     }
   }
-
-  return res.status(405).json({ error: 'Method not allowed' });
-}

@@ -322,88 +322,93 @@ const App: React.FC = () => {
     }
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    if (!files.length) return;
+const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const accentPalette = ['#d9775e', '#6b2c91', '#3d5a80', '#4a3b69'];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
 
-    for (const file of files) {
-      const objectUrl = URL.createObjectURL(file);
-      const fallbackTitle = file.name.replace(/\.[^/.]+$/, "");
-      const tempId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const accentColor = accentPalette[Math.floor(Math.random() * accentPalette.length)];
+      // 创建临时 Blob URL 用于即时播放
+      const tempUrl = URL.createObjectURL(file);
+      const tempId = `temp-${Date.now()}-${i}`;
 
       const newSong: Song = {
         id: tempId,
-        title: fallbackTitle,
+        title: file.name.replace(/\.[^/.]+$/, ''),
         artist: 'Unknown Artist',
-        album: 'Local Import',
-        cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=800&auto=format&fit=crop',
-        duration: '--:--',
-        url: objectUrl,
-        accentColor
+        album: 'Unknown Album',
+        cover: '/covers/default.jpg',
+        duration: '0:00',
+        url: tempUrl,
+        accentColor: '#ff006e'
       };
 
       setLibrary(prev => [...prev, newSong]);
 
-      const formData = new FormData();
-      formData.append('file', file);
-
+      // 上传到 Vercel Blob Storage
       try {
-        console.log('[Upload] Uploading file to mock API:', file.name);
-        const uploadRes = await fetch(`${MOCK_API_BASE}/upload`, {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload', {
           method: 'POST',
-          body: formData
+          body: formData,
         });
 
-        if (!uploadRes.ok) {
-          throw new Error(`Upload failed with status ${uploadRes.status}`);
+        if (!response.ok) {
+          throw new Error('Upload failed');
         }
 
-        const payload = await uploadRes.json();
-        console.log('[Upload] Upload successful, received URL:', payload?.url);
-        if (payload?.url) {
-          setLibrary(prev => prev.map(s => s.id === tempId ? { ...s, url: payload.url } : s));
+        const data = await response.json();
+
+        // 更新为持久化 URL
+        setLibrary(prev =>
+          prev.map(song =>
+            song.id === tempId
+              ? { ...song, url: data.url }
+              : song
+          )
+        );
+
+        // 释放临时 Blob URL
+        URL.revokeObjectURL(tempUrl);
+
+        // 读取 ID3 标签
+        if ((window as any).jsmediatags) {
+          (window as any).jsmediatags.read(file, {
+            onSuccess: (tag: any) => {
+              const { title, artist, album, picture } = tag.tags;
+              let coverUrl = '/covers/default.jpg';
+
+              if (picture) {
+                const { data: picData, format } = picture;
+                const blob = new Blob([new Uint8Array(picData)], { type: format });
+                coverUrl = URL.createObjectURL(blob);
+              }
+
+              setLibrary(prev =>
+                prev.map(song =>
+                  song.id === tempId
+                    ? {
+                        ...song,
+                        title: title || song.title,
+                        artist: artist || song.artist,
+                        album: album || song.album,
+                        cover: coverUrl,
+                      }
+                    : song
+                )
+              );
+            },
+            onError: (error: any) => {
+              console.error('ID3 tag reading error:', error);
+            }
+          });
         }
       } catch (error) {
-        console.warn('[Upload] Upload to mock API failed; keeping local blob URL', error);
-      }
-
-      // Read ID3 tags
-      if ((window as any).jsmediatags) {
-        (window as any).jsmediatags.read(file, {
-          onSuccess: (tag: any) => {
-            const { title, artist, album, picture } = tag.tags;
-            
-            let coverUrl = newSong.cover;
-            if (picture) {
-              const { data, format } = picture;
-              let base64String = "";
-              for (let i = 0; i < data.length; i++) {
-                base64String += String.fromCharCode(data[i]);
-              }
-              coverUrl = `data:${format};base64,${window.btoa(base64String)}`;
-            }
-
-            // Update this specific song in the library
-            setLibrary(prev => prev.map(s => {
-              if (s.id === tempId) {
-                return {
-                  ...s,
-                  title: title || fallbackTitle,
-                  artist: artist || 'Unknown Artist',
-                  album: album || 'Local Import',
-                  cover: coverUrl
-                };
-              }
-              return s;
-            }));
-          },
-          onError: (error: any) => {
-            console.warn("Could not read tags for", file.name, error);
-          }
-        });
+        console.error('Upload error:', error);
+        // 保留临时 URL，允许本地播放
       }
     }
 
