@@ -250,14 +250,6 @@ npm run build
 npm run preview
 ```
 
-### 开发建议
-
-1. **组件开发**: 所有 UI 组件放在 `components/` 目录
-2. **类型定义**: 在 `types.ts` 中定义新的 TypeScript 类型
-3. **常量配置**: 在 `constants.ts` 中定义常量和配置
-4. **样式规范**: 使用 Tailwind CSS 实用类，避免自定义 CSS
-5. **状态管理**: 使用 React Hooks (useState, useEffect, useRef, useMemo)
-6. **代码规范**: 遵循 TypeScript 和 React 最佳实践
 
 ## 核心功能实现
 
@@ -294,14 +286,6 @@ if ((window as any).jsmediatags) {
   });
 }
 ```
-
-**上传流程**:
-1. 用户选择本地音频文件
-2. 创建临时 Blob URL 用于即时播放
-3. 上传文件到 Mock API 服务器
-4. 获取持久化的 HTTP URL
-5. 读取 ID3 标签更新歌曲信息
-6. 保存到 LocalStorage
 
 ### 3. 数据持久化
 
@@ -549,15 +533,7 @@ export const MOCK_API_BASE = import.meta.env.VITE_MOCK_API_BASE || 'http://local
 - 检查 `tsconfig.json` 配置
 - 重启 TypeScript 服务器
 
-## 扩展建议
 
-### 功能扩展
-1. **歌词显示**: 集成 LRC 歌词解析和滚动显示
-2. **均衡器**: 添加音频均衡器控制
-3. **播放列表**: 支持创建和管理自定义播放列表
-4. **云同步**: 集成云存储服务同步音乐库
-5. **社交功能**: 分享歌曲和播放列表
-6. **音乐推荐**: 基于播放历史的智能推荐
 
 ### 技术优化
 1. **状态管理**: 引入 Zustand 或 Redux 管理复杂状态
@@ -597,7 +573,6 @@ MIT License
 
 ---
 
-**项目版本**: 0.0.0
+**项目版本**: 0.0.1
 **最后更新**: 2025-12-15
-**维护状态**: 活跃开发中
 **技术栈**: React 19 + TypeScript 5.8 + Vite 6 + Tailwind CSS 4
