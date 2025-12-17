@@ -63,20 +63,58 @@ const App: React.FC = () => {
       ...song
     });
 
-    // Hydrate any previously uploaded songs that have stable URLs
-    try {
-      const raw = localStorage.getItem(LOCAL_LIBRARY_KEY);
-      console.log('[App] Restoring library from localStorage:', raw);
-      if (raw) {
-        const parsed: Song[] = JSON.parse(raw);
-        console.log('[App] Parsed songs:', parsed.length, 'songs');
-        setLibrary(parsed.map(hydrateSong));
-      } else {
-        console.log('[App] No library data found in localStorage');
+    const loadLibrary = async () => {
+      // 1. 从 localStorage 加载
+      let localSongs: Song[] = [];
+      try {
+        const raw = localStorage.getItem(LOCAL_LIBRARY_KEY);
+        console.log('[App] Restoring library from localStorage:', raw);
+        if (raw) {
+          const parsed: Song[] = JSON.parse(raw);
+          console.log('[App] Parsed songs:', parsed.length, 'songs');
+          localSongs = parsed.map(hydrateSong);
+        } else {
+          console.log('[App] No library data found in localStorage');
+        }
+      } catch (error) {
+        console.warn('Failed to restore local uploads', error);
       }
-    } catch (error) {
-      console.warn('Failed to restore local uploads', error);
-    }
+
+      // 2. 从后端 API 获取已上传的歌曲列表
+      try {
+        // 尝试从开发环境 API 获取
+        const apiUrl = MOCK_API_BASE ? `${MOCK_API_BASE}/uploaded-songs` : '/api/songs';
+        console.log('[App] Fetching uploaded songs from:', apiUrl);
+
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          const serverSongs: Song[] = (data.items || []).map(hydrateSong);
+          console.log('[App] Fetched from server:', serverSongs.length, 'songs');
+
+          // 3. 合并本地和服务器的歌曲列表（去重）
+          const allSongs = [...localSongs];
+          const existingUrls = new Set(localSongs.map(s => s.url));
+
+          for (const song of serverSongs) {
+            if (song.url && !existingUrls.has(song.url)) {
+              allSongs.push(song);
+            }
+          }
+
+          console.log('[App] Total songs after merge:', allSongs.length);
+          setLibrary(allSongs);
+        } else {
+          console.warn('[App] Failed to fetch from server:', response.status);
+          setLibrary(localSongs);
+        }
+      } catch (error) {
+        console.warn('[App] Failed to fetch uploaded songs from server:', error);
+        setLibrary(localSongs);
+      }
+    };
+
+    loadLibrary();
 
     // Hydrate queue so playback list survives refresh
     try {
@@ -323,38 +361,62 @@ const App: React.FC = () => {
     handlePlaySong(playbackQueue[prevIndex], playbackQueue);
   };
 
-  const handleDeleteSong = (song: Song) => {
+  const handleDeleteSong = async (song: Song) => {
     console.log('[Delete] Deleting song:', song.title, song.id);
 
-    // Remove from library
-    setLibrary(prev => {
-      const updated = prev.filter(s => s.id !== song.id);
-      console.log('[Delete] Updated library, now has', updated.length, 'songs');
-      return updated;
-    });
+    // 先从本地状态删除（乐观更新）
+    const removeFromState = () => {
+      // Remove from library
+      setLibrary(prev => {
+        const updated = prev.filter(s => s.id !== song.id);
+        console.log('[Delete] Updated library, now has', updated.length, 'songs');
+        return updated;
+      });
 
-    // If the deleted song is currently playing, stop playback
-    if (playerState.currentSong?.id === song.id) {
+      // If the deleted song is currently playing, stop playback
+      if (playerState.currentSong?.id === song.id) {
+        setPlayerState(prev => ({
+          ...prev,
+          currentSong: null,
+          isPlaying: false,
+          progress: 0
+        }));
+      }
+
+      // Remove from queue if present
       setPlayerState(prev => ({
         ...prev,
-        currentSong: null,
-        isPlaying: false,
-        progress: 0
+        queue: prev.queue.filter(s => s.id !== song.id)
       }));
-    }
+    };
 
-    // Remove from queue if present
-    setPlayerState(prev => ({
-      ...prev,
-      queue: prev.queue.filter(s => s.id !== song.id)
-    }));
+    removeFromState();
 
-    // Optionally: Delete from server if it's an uploaded file
-    if (song.url && song.url.startsWith('http://localhost:4000/uploads/')) {
-      const filename = song.url.split('/').pop();
-      fetch(`${MOCK_API_BASE}/delete/${filename}`, { method: 'DELETE' })
-        .then(() => console.log('[Delete] File deleted from server'))
-        .catch(err => console.warn('[Delete] Failed to delete file from server:', err));
+    // 调用后端 API 删除文件
+    try {
+      // 尝试从 API 删除（生产环境或开发环境）
+      const deleteUrl = MOCK_API_BASE
+        ? `${MOCK_API_BASE}/delete?id=${encodeURIComponent(song.id)}`
+        : `/api/delete?id=${encodeURIComponent(song.id)}`;
+
+      console.log('[Delete] Calling delete API:', deleteUrl);
+
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('[Delete] File deleted from server:', result);
+      } else {
+        console.warn('[Delete] Failed to delete from server:', response.status);
+      }
+    } catch (error) {
+      console.warn('[Delete] Error calling delete API:', error);
+      // 不回滚本地删除，因为可能是离线状态
     }
   };
 
@@ -382,14 +444,15 @@ const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
 
       setLibrary(prev => [...prev, newSong]);
 
-      // 上传到 Vercel Blob Storage
+      // 上传文件到后端
       try {
-        const formData = new FormData();
-        formData.append('file', file);
+        const uploadUrl = MOCK_API_BASE
+          ? `${MOCK_API_BASE}/upload?filename=${encodeURIComponent(file.name)}`
+          : `/api/upload?filename=${encodeURIComponent(file.name)}`;
 
-        const response = await fetch('/api/upload', {
+        const response = await fetch(uploadUrl, {
           method: 'POST',
-          body: formData,
+          body: file,
         });
 
         if (!response.ok) {
@@ -397,25 +460,37 @@ const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         }
 
         const data = await response.json();
+        console.log('[Upload] Response:', data);
 
-        // 更新为持久化 URL
+        // 使用服务器返回的完整元数据
+        const fileMetadata = data.file || data;
+        const serverSong: Song = {
+          id: fileMetadata.id || tempId,
+          title: fileMetadata.title || newSong.title,
+          artist: fileMetadata.artist || newSong.artist,
+          album: fileMetadata.album || newSong.album,
+          cover: fileMetadata.cover || newSong.cover,
+          duration: fileMetadata.duration || newSong.duration,
+          url: fileMetadata.url || data.url,
+          accentColor: fileMetadata.accentColor || newSong.accentColor
+        };
+
+        // 更新为服务器返回的元数据
         setLibrary(prev =>
           prev.map(song =>
-            song.id === tempId
-              ? { ...song, url: data.url }
-              : song
+            song.id === tempId ? serverSong : song
           )
         );
 
         // 释放临时 Blob URL
         URL.revokeObjectURL(tempUrl);
 
-        // 读取 ID3 标签
+        // 读取 ID3 标签并更新元数据
         if ((window as any).jsmediatags) {
           (window as any).jsmediatags.read(file, {
-            onSuccess: (tag: any) => {
+            onSuccess: async (tag: any) => {
               const { title, artist, album, picture } = tag.tags;
-              let coverUrl = '/covers/default.jpg';
+              let coverUrl = serverSong.cover;
 
               if (picture) {
                 const { data: picData, format } = picture;
@@ -423,19 +498,40 @@ const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 coverUrl = URL.createObjectURL(blob);
               }
 
+              const id3Updates = {
+                title: title || serverSong.title,
+                artist: artist || serverSong.artist,
+                album: album || serverSong.album,
+                cover: coverUrl,
+              };
+
+              // 更新本地状态
               setLibrary(prev =>
                 prev.map(song =>
-                  song.id === tempId
-                    ? {
-                        ...song,
-                        title: title || song.title,
-                        artist: artist || song.artist,
-                        album: album || song.album,
-                        cover: coverUrl,
-                      }
+                  song.id === serverSong.id
+                    ? { ...song, ...id3Updates }
                     : song
                 )
               );
+
+              // 同步更新到服务器
+              try {
+                const updateUrl = MOCK_API_BASE
+                  ? `${MOCK_API_BASE}/update?id=${encodeURIComponent(serverSong.id)}`
+                  : `/api/update?id=${encodeURIComponent(serverSong.id)}`;
+
+                await fetch(updateUrl, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(id3Updates),
+                });
+
+                console.log('[ID3] Updated metadata on server:', id3Updates);
+              } catch (updateError) {
+                console.warn('[ID3] Failed to update metadata on server:', updateError);
+              }
             },
             onError: (error: any) => {
               console.error('ID3 tag reading error:', error);
