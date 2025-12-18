@@ -436,7 +436,7 @@ const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         title: file.name.replace(/\.[^/.]+$/, ''),
         artist: 'Unknown Artist',
         album: 'Unknown Album',
-        cover: '/covers/default.jpg',
+        cover: '/covers/109951163200234839 (1).jpg',
         duration: '0:00',
         url: tempUrl,
         accentColor: '#ff006e'
