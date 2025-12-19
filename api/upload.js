@@ -56,7 +56,7 @@ export default async function handler(req, res) {
         artist: 'Unknown Artist',
         album: 'Uploaded',
         duration: '0:00',
-        cover: '/covers/default.jpg',
+        cover: '\covers\a.jpg',
         accentColor: '#ff006e',
 
         // 时间戳
